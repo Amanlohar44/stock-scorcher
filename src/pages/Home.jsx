@@ -3,7 +3,9 @@ import Hero from "../components/Hero";
 import Features from "../components/Features";
 import Courses from "../components/Courses";
 import Testimonials from "../components/Testimonials";
-import Pricing from "../components/Pricing"; // ✅ Ye line honi chahiye
+import Pricing from "../components/Pricing";
+import Faq from "../components/Faq";
+import Footer from "../components/Footer";
 
 export default function Home() {
   return (
@@ -13,7 +15,9 @@ export default function Home() {
       <Features />
       <Courses />
       <Testimonials />
-      <Pricing />   {/* ✅ Ye line honi chahiye */}
+      <Pricing />
+      <Faq />
+      <Footer />
     </div>
   );
 }

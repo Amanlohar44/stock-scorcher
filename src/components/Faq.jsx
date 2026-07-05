@@ -27,32 +27,32 @@ export default function Faq() {
   const [open, setOpen] = useState(null);
 
   return (
-    <section className="bg-black py-20">
-      <div className="max-w-4xl mx-auto px-6">
-        <h2 className="text-5xl font-bold text-center text-yellow-400 mb-12">
+    <section className="bg-black py-16 md:py-20 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-3xl md:text-5xl font-bold text-center text-yellow-400 mb-10 md:mb-12">
           Frequently Asked Questions
         </h2>
 
         {faqs.map((faq, index) => (
           <div
             key={index}
-            className="border border-yellow-500 rounded-xl mb-4 overflow-hidden"
+            className="border border-yellow-500 rounded-xl mb-5 overflow-hidden"
           >
             <button
-              onClick={() =>
-                setOpen(open === index ? null : index)
-              }
-              className="w-full text-left p-5 flex justify-between items-center bg-zinc-900"
+              onClick={() => setOpen(open === index ? null : index)}
+              className="w-full flex justify-between items-center text-left bg-zinc-900 p-4 md:p-5 hover:bg-zinc-800 transition"
             >
-              <span className="font-semibold">{faq.question}</span>
+              <span className="font-semibold text-sm md:text-lg pr-4">
+                {faq.question}
+              </span>
 
-              <span className="text-yellow-400 text-2xl">
-                {open === index ? "-" : "+"}
+              <span className="text-yellow-400 text-2xl font-bold">
+                {open === index ? "−" : "+"}
               </span>
             </button>
 
             {open === index && (
-              <div className="bg-zinc-800 p-5 text-gray-300">
+              <div className="bg-zinc-800 text-gray-300 p-4 md:p-5 text-sm md:text-base leading-7">
                 {faq.answer}
               </div>
             )}
