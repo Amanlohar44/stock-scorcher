@@ -137,10 +137,27 @@ const saveProgress = async (lessonIndex) => {
     totalLessons={lessons.length}
   />
 
-  <CoursePlayer
+ <CoursePlayer
   currentVideo={currentVideo}
   currentLesson={currentLesson}
   completedLessons={completedLessons}
+  totalLessons={lessons.length}
+  onPrevious={() => {
+    if (currentLesson > 0) {
+      const prev = currentLesson - 1;
+      setCurrentLesson(prev);
+      setCurrentVideo(lessons[prev].video);
+      saveProgress(prev);
+    }
+  }}
+  onNext={() => {
+    if (currentLesson < lessons.length - 1) {
+      const next = currentLesson + 1;
+      setCurrentLesson(next);
+      setCurrentVideo(lessons[next].video);
+      saveProgress(next);
+    }
+  }}
   onComplete={async () => {
     if (completedLessons.includes(currentLesson)) return;
 
@@ -161,9 +178,10 @@ const saveProgress = async (lessonIndex) => {
         {/* Lesson List */}
         <div>
 
-  <LessonList
+ <LessonList
   lessons={lessons}
   currentLesson={currentLesson}
+  completedLessons={completedLessons}
   setCurrentLesson={(index) => {
     setCurrentLesson(index);
     saveProgress(index);
@@ -171,9 +189,14 @@ const saveProgress = async (lessonIndex) => {
   setCurrentVideo={setCurrentVideo}
 />
 
-  <button className="mt-6 w-full bg-yellow-400 text-black py-3 rounded-xl font-bold">
-    📄 Download PDF Notes
-  </button>
+ <a
+  href={`/pdf/module${currentLesson + 1}.pdf`}
+  target="_blank"
+  rel="noreferrer"
+  className="mt-6 w-full bg-yellow-400 text-black py-3 rounded-xl font-bold flex justify-center"
+>
+  📄 Download PDF Notes
+</a>
 </div>
       </div>
     </div>

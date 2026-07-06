@@ -3,6 +3,9 @@ export default function CoursePlayer({
   currentLesson,
   completedLessons,
   onComplete,
+  onNext,
+  onPrevious,
+  totalLessons,
 }) {
   const isCompleted = completedLessons.includes(currentLesson);
 
@@ -30,6 +33,24 @@ export default function CoursePlayer({
       >
         {isCompleted ? "✅ Lesson Completed" : "✅ Mark as Completed"}
       </button>
+
+      <div className="grid grid-cols-2 gap-4 mt-5">
+        <button
+          onClick={onPrevious}
+          disabled={currentLesson === 0}
+          className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-bold"
+        >
+          ⬅ Previous Lesson
+        </button>
+
+        <button
+          onClick={onNext}
+          disabled={currentLesson === totalLessons - 1}
+          className="bg-yellow-400 text-black hover:bg-yellow-300 disabled:bg-zinc-700 disabled:text-gray-400 disabled:cursor-not-allowed py-3 rounded-xl font-bold"
+        >
+          Next Lesson ➡
+        </button>
+      </div>
     </div>
   );
 }
