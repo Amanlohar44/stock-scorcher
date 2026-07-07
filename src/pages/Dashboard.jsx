@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import ProgressBar from "../components/ProgressBar";
 
 export default function Dashboard() {
@@ -71,6 +71,21 @@ export default function Dashboard() {
       alert(error.message);
     }
   };
+const grantCourseAccess = async () => {
+  try {
+    await setDoc(doc(db, "purchases", user.uid), {
+      purchased: true,
+      purchasedAt: new Date(),
+    });
+
+    alert("✅ Course Access Granted");
+
+    setHasPurchased(true);
+  } catch (error) {
+    console.log(error);
+    alert("❌ Failed to grant access");
+  }
+};
 
   if (loading) {
     return (
@@ -139,7 +154,7 @@ export default function Dashboard() {
               <p className="text-gray-300 mt-3">
                 Last Lesson: Module {lastLesson + 1}
               </p>
-              
+
 <p className="text-yellow-400 font-bold mt-2 mb-3">
   Progress: {progress}%
 </p>
@@ -189,12 +204,12 @@ export default function Dashboard() {
               Please purchase a course to unlock your dashboard.
             </p>
 
-            <button
-              onClick={() => navigate("/")}
-              className="mt-6 bg-yellow-400 text-black px-8 py-3 rounded-xl font-bold hover:bg-yellow-300"
-            >
-              Buy Course
-            </button>
+           <button
+  onClick={grantCourseAccess}
+  className="mt-6 bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600"
+>
+  ✅ Grant Course Access
+</button>
 
           </div>
 
