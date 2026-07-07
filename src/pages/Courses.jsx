@@ -11,41 +11,18 @@ import {
 import CoursePlayer from "../components/CoursePlayer";
 import LessonList from "../components/LessonList";
 import ProgressBar from "../components/ProgressBar";
+import ModuleLoader from "../components/ModuleLoader";
 
 export default function Courses() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
 
-  const lessons = [
-    {
-      title: "Module 1 - Introduction",
-      video:
-        "https://drive.google.com/file/d/1vsIznJKZ3KoXmWopUdB2dTC0ysUkWWOI/preview",
-    },
-    {
-      title: "Module 2 - Candlestick Patterns",
-      video:
-        "https://drive.google.com/file/d/1vsIznJKZ3KoXmWopUdB2dTC0ysUkWWOI/preview",
-    },
-    {
-      title: "Module 3 - Support & Resistance",
-      video:
-        "https://drive.google.com/file/d/1vsIznJKZ3KoXmWopUdB2dTC0ysUkWWOI/preview",
-    },
-    {
-      title: "Module 4 - Risk Management",
-      video:
-        "https://drive.google.com/file/d/1vsIznJKZ3KoXmWopUdB2dTC0ysUkWWOI/preview",
-    },
-    {
-      title: "Module 5 - Trading Psychology",
-      video:
-        "https://drive.google.com/file/d/1vsIznJKZ3KoXmWopUdB2dTC0ysUkWWOI/preview",
-    },
-  ];
+  const [lessons, setLessons] = useState([]);
 
-  const [currentVideo, setCurrentVideo] = useState(lessons[0].video);
+const [currentVideo, setCurrentVideo] = useState("");
+
+
 
   const [completedLessons, setCompletedLessons] = useState([]);
 const [currentLesson, setCurrentLesson] = useState(0);
@@ -78,7 +55,9 @@ if (progressSnap.exists()) {
   const lessonIndex = data.currentLesson || 0;
 
   setCurrentLesson(lessonIndex);
+  if (lessons.length > lessonIndex) {
   setCurrentVideo(lessons[lessonIndex].video);
+}
 } else {
   await setDoc(progressRef, {
     completedLessons: [],
@@ -124,6 +103,13 @@ const saveProgress = async (lessonIndex) => {
 
   return (
     <div className="min-h-screen bg-black text-white px-8 py-10">
+
+      <ModuleLoader
+  setLessons={setLessons}
+  setCurrentVideo={setCurrentVideo}
+  setCurrentLesson={setCurrentLesson}
+/>
+
       <h1 className="text-5xl font-bold text-yellow-400 mb-10">
         📚 Stock Market Mastery
       </h1>
@@ -175,28 +161,29 @@ const saveProgress = async (lessonIndex) => {
 />
 </div>
 
-        {/* Lesson List */}
-        <div>
+       {/* Lesson List */}
+<div>
 
- <LessonList
-  lessons={lessons}
-  currentLesson={currentLesson}
-  completedLessons={completedLessons}
-  setCurrentLesson={(index) => {
-    setCurrentLesson(index);
-    saveProgress(index);
-  }}
-  setCurrentVideo={setCurrentVideo}
-/>
+  <LessonList
+    lessons={lessons}
+    currentLesson={currentLesson}
+    completedLessons={completedLessons}
+    setCurrentLesson={(index) => {
+      setCurrentLesson(index);
+      saveProgress(index);
+    }}
+    setCurrentVideo={setCurrentVideo}
+  />
 
- <a
-  href={`/pdf/module${currentLesson + 1}.pdf`}
-  target="_blank"
-  rel="noreferrer"
-  className="mt-6 w-full bg-yellow-400 text-black py-3 rounded-xl font-bold flex justify-center"
->
-  📄 Download PDF Notes
-</a>
+  <a
+    href={lessons[currentLesson]?.pdf || "#"}
+    target="_blank"
+    rel="noreferrer"
+    className="mt-6 w-full bg-yellow-400 text-black py-3 rounded-xl font-bold flex justify-center"
+  >
+    📄 Download PDF Notes
+  </a>
+
 </div>
       </div>
     </div>
