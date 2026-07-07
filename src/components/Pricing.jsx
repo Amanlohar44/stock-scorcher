@@ -7,10 +7,10 @@ export default function Pricing() {
     try {
       console.log("🔥 Creating Order...");
 
-      const { data } = await axios.post(
-        "http://localhost:5000/create-order",
-        { amount }
-      );
+     const { data } = await axios.post(
+  "https://stock-scorcher-production.up.railway.app/create-order",
+  { amount }
+);
 
       const options = {
         key: "rzp_test_T9TrMixqwZVfgp",
@@ -23,8 +23,8 @@ export default function Pricing() {
         handler: async function (response) {
           try {
             const verify = await axios.post(
-              "http://localhost:5000/verify-payment",
-              {
+  "https://stock-scorcher-production.up.railway.app/verify-payment",
+  {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
