@@ -8,7 +8,7 @@ export default function Pricing() {
       console.log("🔥 Creating Order...");
 
      const { data } = await axios.post(
-  "https://stock-scorcher-production.up.railway.app/create-order",
+  "https://stock-scorcher-backend.onrender.com/create-order",
   { amount }
 );
 
@@ -23,7 +23,7 @@ export default function Pricing() {
         handler: async function (response) {
           try {
             const verify = await axios.post(
-  "https://stock-scorcher-production.up.railway.app/verify-payment",
+  "https://stock-scorcher-backend.onrender.com/verify-payment",
   {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
