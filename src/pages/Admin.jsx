@@ -15,7 +15,7 @@ export default function Admin() {
     const navigate = useNavigate();
 
 useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
     if (!user) {
       navigate("/login");
       return;
@@ -24,7 +24,10 @@ useEffect(() => {
     if (user.email !== "stockscorcher@gmail.com") {
       alert("⛔ Access Denied");
       navigate("/dashboard");
+      return;
     }
+
+    await loadModules();
   });
 
   return () => unsubscribe();
@@ -45,9 +48,7 @@ useEffect(() => {
     setModules(data);
   };
 
-  useEffect(() => {
-    loadModules();
-  }, []);
+  
 
   const handleAddModule = async () => {
     if (!title || !video) {
