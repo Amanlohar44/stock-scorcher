@@ -1,8 +1,10 @@
 import axios from "axios";
 import { auth, db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 export default function Pricing() {
+  const navigate = useNavigate();
   const handlePayment = async (amount) => {
     try {
       console.log("🔥 Creating Order...");
@@ -49,7 +51,11 @@ export default function Pricing() {
                 );
               }
 
-              alert("🎉 Payment Verified & Course Unlocked!");
+              alert("🎉 Payment Successful!");
+
+setTimeout(() => {
+  navigate("/dashboard");
+}, 1000);
             } else {
               alert("❌ Verification Failed");
             }
