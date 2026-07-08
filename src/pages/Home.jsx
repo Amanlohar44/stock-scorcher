@@ -1,52 +1,75 @@
-import WhatsAppButton from "../components/WhatsAppButton";
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
-import Features from "../components/Features";
-import Courses from "../components/Courses";
-import Testimonials from "../components/Testimonials";
-import Pricing from "../components/Pricing";
-import Faq from "../components/Faq";
-import Contact from "../components/Contact";
-import Footer from "../components/Footer";
+export default function Courses() {
+  const goToPricing = () => {
+    document.getElementById("pricing")?.scrollIntoView({
+      behavior: "smooth",
+    });
+  };
 
-export default function Home() {
   return (
-    <div className="bg-black text-white">
+    <section className="bg-[#0b0b0f] py-20">
+      <div className="max-w-7xl mx-auto px-6">
+        <h2 className="text-5xl font-bold text-center text-yellow-400 mb-14">
+          Our Premium Courses
+        </h2>
 
-      <Navbar />
+        <div className="grid md:grid-cols-3 gap-8">
 
-      <section id="home">
-        <Hero />
-      </section>
+          {/* Course 1 */}
+          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
+            <h3 className="text-3xl font-bold text-yellow-400 mb-4">
+              Master Chart Patterns
+            </h3>
 
-      <section id="features">
-        <Features />
-      </section>
+            <p className="text-gray-300 mb-8">
+              Learn all important chart patterns with live market examples.
+            </p>
 
-      <section id="courses">
-        <Courses />
-      </section>
+            <button
+              onClick={goToPricing}
+              className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition"
+            >
+              Enroll Now
+            </button>
+          </div>
 
-      <section id="testimonials">
-        <Testimonials />
-      </section>
+          {/* Course 2 */}
+          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
+            <h3 className="text-3xl font-bold text-yellow-400 mb-4">
+              Swing Trading Mastery
+            </h3>
 
-      <section id="pricing">
-        <Pricing />
-      </section>
+            <p className="text-gray-300 mb-8">
+              Professional swing trading strategies with risk management.
+            </p>
 
-      <section id="faq">
-        <Faq />
-      </section>
+            <button
+              onClick={goToPricing}
+              className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition"
+            >
+              Enroll Now
+            </button>
+          </div>
 
-      <section id="contact">
-        <Contact />
-      </section>
+          {/* Course 3 */}
+          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
+            <h3 className="text-3xl font-bold text-yellow-400 mb-4">
+              Candlestick Analysis
+            </h3>
 
-      <WhatsAppButton />
+            <p className="text-gray-300 mb-8">
+              Understand every candlestick pattern like a professional trader.
+            </p>
 
-      <Footer />
+            <button
+              onClick={goToPricing}
+              className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition"
+            >
+              Enroll Now
+            </button>
+          </div>
 
-    </div>
+        </div>
+      </div>
+    </section>
   );
 }
