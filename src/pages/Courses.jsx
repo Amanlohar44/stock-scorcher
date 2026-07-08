@@ -175,14 +175,16 @@ const saveProgress = async (lessonIndex) => {
     setCurrentVideo={setCurrentVideo}
   />
 
+  {lessons[currentLesson]?.pdf && (
   <a
-    href={lessons[currentLesson]?.pdf || "#"}
+    href={lessons[currentLesson].pdf}
     target="_blank"
     rel="noreferrer"
-    className="mt-6 w-full bg-yellow-400 text-black py-3 rounded-xl font-bold flex justify-center"
+    className="mt-6 w-full bg-yellow-400 text-black py-3 rounded-xl font-bold flex justify-center hover:bg-yellow-300 transition"
   >
     📄 Download PDF Notes
   </a>
+)}
 
 </div>
       </div>

@@ -12,16 +12,18 @@ export default function ModuleLoader({
       try {
         const snapshot = await getDocs(collection(db, "modules"));
 
-        const moduleList = [];
+        const moduleList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-        snapshot.forEach((doc) => {
-          moduleList.push({
-            id: doc.id,
-            ...doc.data(),
-          });
-        });
-
-        moduleList.sort((a, b) => a.title.localeCompare(b.title));
+        // Natural sorting (Module 1, Module 2, Module 10)
+        moduleList.sort((a, b) =>
+          a.title.localeCompare(b.title, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          })
+        );
 
         setLessons(moduleList);
 
@@ -30,12 +32,12 @@ export default function ModuleLoader({
           setCurrentVideo(moduleList[0].video);
         }
       } catch (error) {
-        console.log(error);
+        console.error("Error loading modules:", error);
       }
     };
 
     loadModules();
-  }, []);
+  }, [setLessons, setCurrentVideo, setCurrentLesson]);
 
   return null;
 }

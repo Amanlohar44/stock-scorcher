@@ -8,7 +8,7 @@ export default function LessonList({
   return (
     <div className="bg-zinc-900 rounded-xl p-6 border border-yellow-500">
       <h2 className="text-3xl font-bold text-yellow-400 mb-6">
-        Course Content
+        📚 Course Content
       </h2>
 
       <div className="space-y-4">
@@ -16,9 +16,11 @@ export default function LessonList({
           const unlocked =
             index === 0 || completedLessons.includes(index - 1);
 
+          const completed = completedLessons.includes(index);
+
           return (
             <button
-              key={index}
+              key={lesson.id || index}
               disabled={!unlocked}
               onClick={() => {
                 if (!unlocked) return;
@@ -26,7 +28,7 @@ export default function LessonList({
                 setCurrentLesson(index);
                 setCurrentVideo(lesson.video);
               }}
-              className={`w-full text-left p-4 rounded-lg transition ${
+              className={`w-full flex items-center justify-between p-4 rounded-lg transition ${
                 currentLesson === index
                   ? "bg-yellow-400 text-black font-bold"
                   : unlocked
@@ -34,7 +36,15 @@ export default function LessonList({
                   : "bg-zinc-800 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {unlocked ? "▶" : "🔒"} {lesson.title}
+              <span>
+                {unlocked ? "▶" : "🔒"} {lesson.title}
+              </span>
+
+              {completed && (
+                <span className="text-green-500 font-bold">
+                  ✓
+                </span>
+              )}
             </button>
           );
         })}

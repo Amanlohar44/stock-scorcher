@@ -35,7 +35,8 @@ export default function CoursePlayer({
             src={currentVideo}
             title="Course Video"
             className="w-full h-full"
-            allow="autoplay; encrypted-media"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
           ></iframe>
         </div>
@@ -70,10 +71,14 @@ export default function CoursePlayer({
 
         <button
           onClick={onNext}
-          disabled={currentLesson === totalLessons - 1}
+          disabled={
+            currentLesson === totalLessons - 1 || !isCompleted
+          }
           className="bg-yellow-400 text-black hover:bg-yellow-300 disabled:bg-zinc-700 disabled:text-gray-400 disabled:cursor-not-allowed py-4 rounded-xl font-bold"
         >
-          Next Lesson ➡
+          {isCompleted
+            ? "Next Lesson ➡"
+            : "Complete Lesson First"}
         </button>
 
       </div>
