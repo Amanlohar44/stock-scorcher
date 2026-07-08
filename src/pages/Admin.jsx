@@ -13,20 +13,21 @@ export default function Admin() {
   const [video, setVideo] = useState("");
   const [pdf, setPdf] = useState("");
   const [modules, setModules] = useState([]);
-const loadModules = async () => {
-  const snapshot = await getDocs(collection(db, "modules"));
 
-  const data = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+  const loadModules = async () => {
+    const snapshot = await getDocs(collection(db, "modules"));
 
-  setModules(data);
-};
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-useEffect(() => {
-  loadModules();
-}, []);
+    setModules(data);
+  };
+
+  useEffect(() => {
+    loadModules();
+  }, []);
 
   const handleAddModule = async () => {
     if (!title || !video) {
@@ -42,28 +43,41 @@ useEffect(() => {
         createdAt: new Date(),
       });
 
-      loadModules();
-
       alert("✅ Module Added Successfully");
 
       setTitle("");
       setVideo("");
       setPdf("");
+
+      loadModules();
     } catch (error) {
       console.log(error);
       alert("❌ Error adding module");
     }
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-10 w-full max-w-3xl">
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this module?")) return;
 
-        <h1 className="text-4xl font-bold text-yellow-400 mb-8">
+    try {
+      await deleteDoc(doc(db, "modules", id));
+      loadModules();
+      alert("✅ Module Deleted");
+    } catch (error) {
+      console.log(error);
+      alert("❌ Error deleting module");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white flex justify-center py-10 px-4">
+      <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8 w-full max-w-4xl">
+
+        <h1 className="text-4xl font-bold text-yellow-400 mb-8 text-center">
           Admin Panel
         </h1>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
 
           <input
             type="text"
@@ -94,46 +108,53 @@ useEffect(() => {
             className="w-full bg-yellow-400 text-black py-4 rounded-xl font-bold hover:bg-yellow-300"
           >
             ➕ Add Module
-            <hr className="border-zinc-700 my-8" />
-
-<h2 className="text-2xl font-bold text-yellow-400 mb-5">
-  All Modules
-</h2>
-
-<div className="space-y-4">
-  {modules.map((module) => (
-    <div
-      key={module.id}
-      className="bg-black border border-yellow-500 rounded-xl p-5 flex justify-between items-center"
-    >
-      <div>
-        <h3 className="text-xl font-bold text-white">
-          {module.title}
-        </h3>
-
-        <p className="text-gray-400 text-sm mt-1">
-          {module.video}
-        </p>
-      </div>
-
-      <button
-        onClick={async () => {
-          if (!window.confirm("Delete this module?")) return;
-
-          await deleteDoc(doc(db, "modules", module.id));
-
-          loadModules();
-
-          alert("✅ Module Deleted");
-        }}
-        className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-bold"
-      >
-        Delete
-      </button>
-    </div>
-  ))}
-</div>
           </button>
+
+        </div>
+
+        <hr className="border-zinc-700 my-8" />
+
+        <h2 className="text-2xl font-bold text-yellow-400 mb-5">
+          All Modules
+        </h2>
+
+        <div className="space-y-4">
+
+          {modules.length === 0 ? (
+            <p className="text-gray-400">
+              No modules added yet.
+            </p>
+          ) : (
+            modules.map((module) => (
+              <div
+                key={module.id}
+                className="bg-black border border-yellow-500 rounded-xl p-5 flex justify-between items-center"
+              >
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {module.title}
+                  </h3>
+
+                  <p className="text-gray-400 text-sm mt-2 break-all">
+                    {module.video}
+                  </p>
+
+                  {module.pdf && (
+                    <p className="text-green-400 text-sm mt-2 break-all">
+                      PDF: {module.pdf}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleDelete(module.id)}
+                  className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-bold"
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
 
         </div>
 
