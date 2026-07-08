@@ -1,3 +1,6 @@
+import { useNavigate } from "react-router-dom";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import {
@@ -9,6 +12,23 @@ import {
 } from "firebase/firestore";
 
 export default function Admin() {
+    const navigate = useNavigate();
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user.email !== "stockscorcher@gmail.com") {
+      alert("⛔ Access Denied");
+      navigate("/dashboard");
+    }
+  });
+
+  return () => unsubscribe();
+}, [navigate]);
   const [title, setTitle] = useState("");
   const [video, setVideo] = useState("");
   const [pdf, setPdf] = useState("");
@@ -34,11 +54,19 @@ export default function Admin() {
       alert("Please fill Module Title and Video Link");
       return;
     }
+let videoLink = video;
 
+if (video.includes("watch?v=")) {
+  const videoId = video.split("watch?v=")[1].split("&")[0];
+  videoLink = `https://www.youtube.com/embed/${videoId}`;
+} else if (video.includes("youtu.be/")) {
+  const videoId = video.split("youtu.be/")[1].split("?")[0];
+  videoLink = `https://www.youtube.com/embed/${videoId}`;
+}
     try {
       await addDoc(collection(db, "modules"), {
         title,
-        video,
+        video: videoLink,
         pdf,
         createdAt: new Date(),
       });
@@ -89,7 +117,7 @@ export default function Admin() {
 
           <input
             type="text"
-            placeholder="Google Drive Video Link"
+            placeholder="YouTube Unlisted Video Link"
             value={video}
             onChange={(e) => setVideo(e.target.value)}
             className="w-full bg-black border border-yellow-500 rounded-lg p-4"
