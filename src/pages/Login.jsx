@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { auth } from "../firebase";
 
 export default function Login() {
@@ -14,8 +17,21 @@ export default function Login() {
       await signInWithEmailAndPassword(auth, email, password);
 
       alert("Login Successful ✅");
-
       navigate("/dashboard");
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("Please enter your email first.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("✅ Password reset email sent. Please check your inbox.");
     } catch (error) {
       alert(error.message);
     }
@@ -42,7 +58,7 @@ export default function Login() {
           placeholder="Enter Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-3 mb-6 rounded-lg bg-zinc-800 text-white outline-none border border-zinc-700"
+          className="w-full p-3 mb-4 rounded-lg bg-zinc-800 text-white outline-none border border-zinc-700"
         />
 
         <button
@@ -50,6 +66,13 @@ export default function Login() {
           className="w-full bg-yellow-400 text-black py-3 rounded-lg font-bold hover:bg-yellow-300 transition"
         >
           Login
+        </button>
+
+        <button
+          onClick={handleForgotPassword}
+          className="w-full mt-4 text-yellow-400 hover:underline"
+        >
+          Forgot Password?
         </button>
 
         <p className="text-center text-gray-400 mt-6">
