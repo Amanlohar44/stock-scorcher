@@ -8,6 +8,7 @@ import Courses from "./pages/Courses";
 import Admin from "./pages/Admin";
 import { useEffect, useState } from "react";
 import Loader from "./components/Loader";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -30,10 +31,12 @@ if (loading) {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
-
+        
         {/* My Courses Page */}
         <Route path="/courses" element={<Courses />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<NotFound />} />
+
       </Routes>
     </BrowserRouter>
   );
