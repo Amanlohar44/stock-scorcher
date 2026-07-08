@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
 } from "firebase/auth";
 import { auth } from "../firebase";
 
@@ -14,9 +15,25 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
-      alert("Login Successful ✅");
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        await sendEmailVerification(user);
+
+        alert(
+          "⚠️ Please verify your email first.\n\nA new verification email has been sent."
+        );
+
+        return;
+      }
+
+      alert("✅ Login Successful");
       navigate("/dashboard");
     } catch (error) {
       alert(error.message);
