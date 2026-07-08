@@ -22,8 +22,20 @@ export default function Pricing() {
         description: "Course Purchase",
         order_id: data.id,
 
-        handler: async function (response) {
+        modal: {
+  ondismiss: function () {
+    document
+      .querySelectorAll(".razorpay-container")
+      .forEach((e) => e.remove());
+  },
+},
+
+        handler: async function (response)  {
           try {
+            document
+  .querySelectorAll(".razorpay-container")
+  .forEach((e) => e.remove());
+
             const verify = await axios.post(
   "https://stock-scorcher-backend.onrender.com/verify-payment",
   {
@@ -79,6 +91,11 @@ setTimeout(() => {
 
       const razor = new window.Razorpay(options);
       razor.open();
+      razor.on("payment.failed", function () {
+  document
+    .querySelectorAll(".razorpay-container")
+    .forEach((e) => e.remove());
+});
     } catch (err) {
       console.error(err);
       alert("Payment Failed");
