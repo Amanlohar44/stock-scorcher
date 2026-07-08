@@ -191,7 +191,7 @@ export default function Dashboard() {
             </p>
 
            <button
-  onClick={() => navigate("/pricing")}
+  onClick={() => navigate("/")}
   className="mt-6 bg-yellow-400 text-black px-8 py-3 rounded-xl font-bold hover:bg-yellow-300"
 >
   💳 Buy Course
