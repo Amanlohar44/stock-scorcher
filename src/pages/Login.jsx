@@ -27,8 +27,8 @@ export default function Login() {
         await sendEmailVerification(user);
 
         alert(
-          "⚠️ Please verify your email first.\n\nA new verification email has been sent."
-        );
+  "⚠️ Your email is not verified yet.\n\n📧 A new verification email has been sent.\n\n👉 Please check your Primary, Promotions, Spam or Inbox tabs.\n\nIf you're using Gmail, the email may appear in the Promotions tab."
+);
 
         return;
       }

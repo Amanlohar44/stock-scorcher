@@ -23,8 +23,8 @@ export default function Signup() {
       await sendEmailVerification(userCredential.user);
 
       alert(
-        "✅ Account Created!\n\nA verification email has been sent. Please verify your email before logging in."
-      );
+  "✅ Account Created Successfully!\n\n📧 A verification email has been sent.\n\n👉 Please check your Primary, Promotions, Spam or Inbox tabs.\n\nIf you're using Gmail, the email may appear in the Promotions tab."
+);
 
       navigate("/login");
     } catch (error) {
