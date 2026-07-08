@@ -71,21 +71,7 @@ export default function Dashboard() {
       alert(error.message);
     }
   };
-const grantCourseAccess = async () => {
-  try {
-    await setDoc(doc(db, "purchases", user.uid), {
-      purchased: true,
-      purchasedAt: new Date(),
-    });
 
-    alert("✅ Course Access Granted");
-
-    setHasPurchased(true);
-  } catch (error) {
-    console.log(error);
-    alert("❌ Failed to grant access");
-  }
-};
 
   if (loading) {
     return (
@@ -205,10 +191,10 @@ const grantCourseAccess = async () => {
             </p>
 
            <button
-  onClick={grantCourseAccess}
-  className="mt-6 bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600"
+  onClick={() => navigate("/pricing")}
+  className="mt-6 bg-yellow-400 text-black px-8 py-3 rounded-xl font-bold hover:bg-yellow-300"
 >
-  ✅ Grant Course Access
+  💳 Buy Course
 </button>
 
           </div>

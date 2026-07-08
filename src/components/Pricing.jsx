@@ -15,7 +15,7 @@ export default function Pricing() {
 );
 
       const options = {
-        key: "rzp_test_TAccE6hRiXDFTB",
+        key: "rzp_test_TAvTfgBmQvdADz",
         amount: data.amount,
         currency: data.currency,
         name: "Stock Scorcher",
@@ -40,13 +40,15 @@ export default function Pricing() {
                 await setDoc(
                   doc(db, "purchases", user.uid),
                   {
-                    uid: user.uid,
-                    email: user.email,
-                    course: amount,
-                    paymentId: response.razorpay_payment_id,
-                    orderId: response.razorpay_order_id,
-                    purchasedAt: new Date().toISOString(),
-                  },
+  uid: user.uid,
+  email: user.email,
+  course: amount,
+  purchased: true,
+  paymentStatus: "paid",
+  paymentId: response.razorpay_payment_id,
+  orderId: response.razorpay_order_id,
+  purchasedAt: new Date().toISOString(),
+},
                   { merge: true }
                 );
               }
