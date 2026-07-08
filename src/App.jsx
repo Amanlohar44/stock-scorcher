@@ -6,8 +6,23 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Admin from "./pages/Admin";
+import { useEffect, useState } from "react";
+import Loader from "./components/Loader";
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setLoading(false);
+  }, 1500);
+
+  return () => clearTimeout(timer);
+}, []);
+
+if (loading) {
+  return <Loader />;
+}
   return (
     <BrowserRouter>
       <Routes>
