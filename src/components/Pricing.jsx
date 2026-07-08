@@ -15,7 +15,7 @@ export default function Pricing() {
 );
 
       const options = {
-        key: "rzp_test_TAvTfgBmQvdADz",
+        key: "rzp_live_TB6ROKtV9GwMGv",
         amount: data.amount,
         currency: data.currency,
         name: "Stock Scorcher",
