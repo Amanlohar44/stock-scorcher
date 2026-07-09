@@ -3,8 +3,38 @@ const express = require("express");
 const cors = require("cors");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const { Resend } = require("resend");
 require("dotenv").config();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
+async function sendPaymentEmail(email, amount, paymentId) {
+  try {
+    await resend.emails.send({
+      from: "Stock Scorcher <onboarding@resend.dev>",
+      to: email,
+      subject: "Payment Successful - Stock Scorcher",
+      html: `
+        <h2>🎉 Payment Successful</h2>
+
+        <p>Thank you for purchasing Stock Scorcher.</p>
+
+        <p><strong>Amount:</strong> ₹${amount}</p>
+
+        <p><strong>Payment ID:</strong> ${paymentId}</p>
+
+        <p>Your course has been unlocked successfully.</p>
+
+        <a href="https://stock-scorcher-eight.vercel.app/dashboard">
+          Go To Dashboard
+        </a>
+      `,
+    });
+
+    console.log("✅ Email Sent");
+  } catch (err) {
+    console.error("Email Error:", err);
+  }
+}
 const app = express();
 
 app.use(cors({
@@ -42,7 +72,7 @@ app.use((req, res, next) => {
 
 // ===================== CREATE ORDER =====================
 
-app.post("/create-order", async (req, res) => {
+app.post("/verify-payment", async (req, res) => {
   console.log("🔥 CREATE ORDER HIT");
 
   try {
@@ -78,10 +108,12 @@ app.post("/verify-payment", (req, res) => {
   console.log(req.body);
 
   const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-  } = req.body;
+  razorpay_order_id,
+  razorpay_payment_id,
+  razorpay_signature,
+  email,
+  amount,
+} = req.body;
 
   const body = razorpay_order_id + "|" + razorpay_payment_id;
 
@@ -90,14 +122,22 @@ app.post("/verify-payment", (req, res) => {
     .update(body)
     .digest("hex");
 
-  if (expectedSignature === razorpay_signature) {
-    console.log("✅ PAYMENT VERIFIED");
+ if (expectedSignature === razorpay_signature) {
+  console.log("✅ PAYMENT VERIFIED");
 
-    return res.json({
-      success: true,
-      message: "Payment Verified Successfully",
-    });
-  } else {
+  if (email) {
+    await sendPaymentEmail(
+      email,
+      amount,
+      razorpay_payment_id
+    );
+  }
+
+  return res.json({
+    success: true,
+    message: "Payment Verified Successfully",
+  });
+} else {
     console.log("❌ INVALID SIGNATURE");
 
     return res.status(400).json({
