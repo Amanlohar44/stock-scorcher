@@ -67,7 +67,7 @@ export default function generateCertificate(studentName) {
   doc.line(210, 170, 270, 170);
 
   doc.setFontSize(16);
-  doc.text("Ashish Lohar", 240, 178);
+  doc.text("Aman Lohar", 240, 178);
 
   doc.save("Stock-Scorcher-Certificate.pdf");
 }
