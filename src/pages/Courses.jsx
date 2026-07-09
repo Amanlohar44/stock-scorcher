@@ -12,6 +12,7 @@ import CoursePlayer from "../components/CoursePlayer";
 import LessonList from "../components/LessonList";
 import ProgressBar from "../components/ProgressBar";
 import ModuleLoader from "../components/ModuleLoader";
+import CertificateButton from "../components/CertificateButton";
 
 export default function Courses() {
   const navigate = useNavigate();
@@ -185,7 +186,12 @@ const saveProgress = async (lessonIndex) => {
     📄 Download PDF Notes
   </a>
 )}
-
+{lessons.length > 0 &&
+ completedLessons.length === lessons.length && (
+  <div className="mt-4">
+    <CertificateButton />
+  </div>
+)}
 </div>
       </div>
     </div>
