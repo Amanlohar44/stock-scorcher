@@ -39,11 +39,14 @@ export default function Pricing() {
             const verify = await axios.post(
   "https://stock-scorcher-backend.onrender.com/verify-payment",
   {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }
-            );
+    razorpay_order_id: response.razorpay_order_id,
+    razorpay_payment_id: response.razorpay_payment_id,
+    razorpay_signature: response.razorpay_signature,
+
+    email: auth.currentUser?.email,
+    amount: amount,
+  }
+);
 
             if (verify.data.success) {
               const user = auth.currentUser;
