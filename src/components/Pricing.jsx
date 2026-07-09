@@ -157,7 +157,7 @@ setTimeout(() => {
   </ul>
 
   <button
-    onClick={() => handlePayment(6999)}
+    onClick={() => handlePayment(1)}
     className="w-full bg-black text-yellow-400 py-3 rounded-xl font-bold hover:bg-zinc-900 transition"
   >
     Buy Now
@@ -182,7 +182,7 @@ setTimeout(() => {
   </ul>
 
   <button
-    onClick={() => handlePayment(9999)}
+    onClick={() => handlePayment(1)}
     className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition"
   >
     Buy Now
