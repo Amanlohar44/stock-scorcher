@@ -68,7 +68,7 @@ export default function Pricing() {
               alert("🎉 Payment Successful!");
 
 setTimeout(() => {
-  navigate("/dashboard");
+  navigate("/payment-success");
 }, 1000);
             } else {
               alert("❌ Verification Failed");
@@ -182,7 +182,7 @@ setTimeout(() => {
   </ul>
 
   <button
-    onClick={() => handlePayment(9999)}
+    onClick={() => handlePayment(1)}
     className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition"
   >
     Buy Now
