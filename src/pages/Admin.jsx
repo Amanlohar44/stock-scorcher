@@ -8,6 +8,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 
 export default function Admin() {
@@ -23,6 +24,14 @@ export default function Admin() {
   const [students, setStudents] = useState([]);
 
   const [totalRevenue, setTotalRevenue] = useState(0);
+
+  const [editingId, setEditingId] = useState(null);
+
+const [editTitle, setEditTitle] = useState("");
+
+const [editVideo, setEditVideo] = useState("");
+
+const [editPdf, setEditPdf] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -130,6 +139,44 @@ export default function Admin() {
       alert("❌ Error deleting module");
     }
   };
+
+  const handleEdit = async () => {
+  if (!editTitle || !editVideo) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  let videoLink = editVideo;
+
+  if (editVideo.includes("watch?v=")) {
+    const id = editVideo.split("watch?v=")[1].split("&")[0];
+    videoLink = `https://www.youtube.com/embed/${id}`;
+  } else if (editVideo.includes("youtu.be/")) {
+    const id = editVideo.split("youtu.be/")[1].split("?")[0];
+    videoLink = `https://www.youtube.com/embed/${id}`;
+  }
+
+  try {
+    await updateDoc(doc(db, "modules", editingId), {
+      title: editTitle,
+      video: videoLink,
+      pdf: editPdf,
+    });
+
+    alert("✅ Module Updated");
+
+    setEditingId(null);
+    setEditTitle("");
+    setEditVideo("");
+    setEditPdf("");
+
+    loadDashboard();
+  } catch (err) {
+    console.log(err);
+    alert("❌ Update Failed");
+  }
+};
+
 
   if (loading) {
     return (
@@ -252,41 +299,112 @@ export default function Admin() {
           ) : (
 
             modules.map((module) => (
+  <div
+    key={module.id}
+    className="bg-black border border-yellow-500 rounded-xl p-5"
+  >
 
-              <div
-                key={module.id}
-                className="bg-black border border-yellow-500 rounded-xl p-5 flex justify-between items-center"
-              >
+    {editingId === module.id ? (
 
-                <div>
+      <div className="space-y-4">
 
-                  <h3 className="text-xl font-bold">
-                    {module.title}
-                  </h3>
+        <input
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          className="w-full bg-zinc-900 border border-yellow-500 rounded-lg p-3"
+        />
 
-                  <p className="text-gray-400 break-all mt-2">
-                    {module.video}
-                  </p>
+        <input
+          type="text"
+          value={editVideo}
+          onChange={(e) => setEditVideo(e.target.value)}
+          className="w-full bg-zinc-900 border border-yellow-500 rounded-lg p-3"
+        />
 
-                  {module.pdf && (
-                    <p className="text-green-400 mt-2 break-all">
-                      📄 {module.pdf}
-                    </p>
-                  )}
+        <input
+          type="text"
+          value={editPdf}
+          onChange={(e) => setEditPdf(e.target.value)}
+          className="w-full bg-zinc-900 border border-yellow-500 rounded-lg p-3"
+        />
 
-                </div>
+        <div className="flex gap-3">
 
-                <button
-                  onClick={() => handleDelete(module.id)}
-                  className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-bold"
-                >
-                  Delete
-                </button>
+          <button
+            onClick={handleEdit}
+            className="bg-green-500 hover:bg-green-600 px-5 py-2 rounded-lg font-bold"
+          >
+            💾 Save
+          </button>
 
-              </div>
+          <button
+            onClick={() => {
+              setEditingId(null);
+              setEditTitle("");
+              setEditVideo("");
+              setEditPdf("");
+            }}
+            className="bg-gray-600 hover:bg-gray-700 px-5 py-2 rounded-lg font-bold"
+          >
+            Cancel
+          </button>
 
-            ))
+        </div>
 
+      </div>
+
+    ) : (
+
+      <div className="flex justify-between items-center">
+
+        <div>
+
+          <h3 className="text-xl font-bold">
+            {module.title}
+          </h3>
+
+          <p className="text-gray-400 break-all mt-2">
+            {module.video}
+          </p>
+
+          {module.pdf && (
+            <p className="text-green-400 mt-2 break-all">
+              📄 {module.pdf}
+            </p>
+          )}
+
+        </div>
+
+        <div className="flex gap-3">
+
+          <button
+            onClick={() => {
+              setEditingId(module.id);
+              setEditTitle(module.title);
+              setEditVideo(module.video);
+              setEditPdf(module.pdf || "");
+            }}
+            className="bg-blue-500 hover:bg-blue-600 px-5 py-2 rounded-lg font-bold"
+          >
+            ✏ Edit
+          </button>
+
+          <button
+            onClick={() => handleDelete(module.id)}
+            className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-bold"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+
+    )}
+
+  </div>
+))
           )}
 
         </div>
