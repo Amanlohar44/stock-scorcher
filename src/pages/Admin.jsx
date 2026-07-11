@@ -1,7 +1,7 @@
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   addDoc,
@@ -12,6 +12,10 @@ import {
 } from "firebase/firestore";
 
 export default function Admin() {
+  const handleLogout = async () => {
+  await signOut(auth);
+  navigate("/login");
+};
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,7 @@ export default function Admin() {
 
   const [modules, setModules] = useState([]);
   const [students, setStudents] = useState([]);
+  const [search, setSearch] = useState("");
 
   const [totalRevenue, setTotalRevenue] = useState(0);
 
@@ -63,6 +68,8 @@ const [editPdf, setEditPdf] = useState("");
         id: doc.id,
         ...doc.data(),
       }));
+
+      
 
       setModules(moduleData);
 
@@ -189,9 +196,19 @@ const [editPdf, setEditPdf] = useState("");
   return (
     <div className="min-h-screen bg-black text-white px-6 py-10">
 
-      <h1 className="text-5xl font-bold text-yellow-400 text-center mb-10">
-        👑 Admin Dashboard
-      </h1>
+      <div className="flex justify-between items-center mb-8">
+  <h1 className="text-5xl font-bold text-yellow-400">
+    👑 Admin Dashboard
+  </h1>
+
+  <button
+    onClick={handleLogout}
+    className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-xl font-bold"
+  >
+    Logout
+  </button>
+</div>
+    
 
       {/* Statistics */}
 
@@ -419,6 +436,16 @@ const [editPdf, setEditPdf] = useState("");
           👨‍🎓 Purchased Students
         </h2>
 
+         <div className="mb-6">
+  <input
+    type="text"
+    placeholder="🔍 Search student by email..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    className="w-full bg-black border border-yellow-500 rounded-xl p-4"
+  />
+</div>
+
         <div className="overflow-x-auto">
 
           <table className="w-full border-collapse">
@@ -454,7 +481,11 @@ const [editPdf, setEditPdf] = useState("");
 
               ) : (
 
-                students.map((student) => (
+                students
+  .filter((student) =>
+    student.email?.toLowerCase().includes(search.toLowerCase())
+  )
+  .map((student) => (
 
                   <tr
                     key={student.id}
@@ -497,7 +528,9 @@ const [editPdf, setEditPdf] = useState("");
 
           </table>
 
-        </div>
+         
+         
+               </div>
 
       </div>
 
