@@ -21,6 +21,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
 
   const [title, setTitle] = useState("");
+  const [day, setDay] = useState("");
   const [video, setVideo] = useState("");
   const [pdf, setPdf] = useState("");
 
@@ -96,7 +97,7 @@ const [editPdf, setEditPdf] = useState("");
   };  
   
   const handleAddModule = async () => {
-    if (!title || !video) {
+    if (!title || !video || !day) {
       alert("Please fill Module Title and Video Link");
       return;
     }
@@ -113,17 +114,19 @@ const [editPdf, setEditPdf] = useState("");
 
     try {
       await addDoc(collection(db, "modules"), {
-        title,
-        video: videoLink,
-        pdf,
-        createdAt: new Date(),
-      });
+  day: Number(day),
+  title,
+  video: videoLink,
+  pdf,
+  createdAt: new Date(),
+});
 
       alert("✅ Module Added Successfully");
 
-      setTitle("");
-      setVideo("");
-      setPdf("");
+      setDay("");
+setTitle("");
+setVideo("");
+setPdf("");
 
       loadDashboard();
     } catch (err) {
@@ -338,6 +341,14 @@ const [editPdf, setEditPdf] = useState("");
           onChange={(e) => setEditVideo(e.target.value)}
           className="w-full bg-zinc-900 border border-yellow-500 rounded-lg p-3"
         />
+
+        <input
+  type="number"
+  placeholder="Day Number (Example: 1)"
+  value={day}
+  onChange={(e) => setDay(e.target.value)}
+  className="w-full bg-black border border-yellow-500 rounded-xl p-4"
+/>
 
         <input
           type="text"
