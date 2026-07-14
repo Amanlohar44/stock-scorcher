@@ -19,7 +19,7 @@ export default function Admin() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-
+const [editDay, setEditDay] = useState("");
   const [title, setTitle] = useState("");
   const [day, setDay] = useState("");
   const [video, setVideo] = useState("");
@@ -70,7 +70,16 @@ const [editPdf, setEditPdf] = useState("");
         ...doc.data(),
       }));
 
-      
+      moduleData.sort((a, b) => {
+  if (a.day !== b.day) {
+    return a.day - b.day;
+  }
+
+  return a.title.localeCompare(b.title, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+});
 
       setModules(moduleData);
 
@@ -168,10 +177,11 @@ setPdf("");
 
   try {
     await updateDoc(doc(db, "modules", editingId), {
-      title: editTitle,
-      video: videoLink,
-      pdf: editPdf,
-    });
+  day: Number(editDay),
+  title: editTitle,
+  video: videoLink,
+  pdf: editPdf,
+});
 
     alert("✅ Module Updated");
 
@@ -265,6 +275,14 @@ setPdf("");
 
         <div className="space-y-5">
 
+<input
+  type="number"
+  placeholder="Day Number (1,2,3...)"
+  value={day}
+onChange={(e) => setDay(e.target.value)}
+  className="w-full bg-black border border-yellow-500 rounded-xl p-4"
+/>
+
           <input
             type="text"
             placeholder="Module Title"
@@ -323,6 +341,9 @@ setPdf("");
     key={module.id}
     className="bg-black border border-yellow-500 rounded-xl p-5"
   >
+    <p className="text-yellow-400 font-semibold">
+  📁 Day {module.day}
+</p>
 
     {editingId === module.id ? (
 
@@ -345,8 +366,8 @@ setPdf("");
         <input
   type="number"
   placeholder="Day Number (Example: 1)"
-  value={day}
-  onChange={(e) => setDay(e.target.value)}
+  value={editDay}
+onChange={(e) => setEditDay(e.target.value)}
   className="w-full bg-black border border-yellow-500 rounded-xl p-4"
 />
 
@@ -412,6 +433,7 @@ setPdf("");
               setEditTitle(module.title);
               setEditVideo(module.video);
               setEditPdf(module.pdf || "");
+setEditDay(module.day || 1);
             }}
             className="bg-blue-500 hover:bg-blue-600 px-5 py-2 rounded-lg font-bold"
           >
