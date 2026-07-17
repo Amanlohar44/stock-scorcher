@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import ProgressBar from "../components/ProgressBar";
+import DashboardSidebar from "../components/dashboard/DashboardSidebar";
+import DashboardTopbar from "../components/dashboard/DashboardTopbar";
+import ProfileSection from "../components/dashboard/ProfileSection";
+import CertificateSection from "../components/dashboard/CertificateSection";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -14,6 +18,7 @@ export default function Dashboard() {
 
   const [progress, setProgress] = useState(0);
   const [lastLesson, setLastLesson] = useState(0);
+  const [active, setActive] = useState("dashboard");
 
   const totalLessons = 5;
 
@@ -82,38 +87,41 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+  <div className="min-h-screen bg-black text-white flex">
 
-      {/* Navbar */}
+      <DashboardSidebar
+  active={active}
+  setActive={setActive}
+  handleLogout={handleLogout}
+/>
 
-      <div className="flex justify-between items-center px-8 py-5 border-b border-yellow-500">
+<div className="flex-1">
 
-        <h1 className="text-3xl font-bold text-yellow-400">
-          Stock Scorcher
-        </h1>
+  <DashboardTopbar user={user} />
 
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg font-semibold"
-        >
-          Logout
-        </button>
+  <div className="max-w-7xl mx-auto px-8 py-10">
 
-      </div>
+      
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+        {active === "profile" ? (
 
-        <h2 className="text-5xl font-bold text-yellow-400">
-          Welcome 👋
-        </h2>
+  <ProfileSection user={user} />
 
-        <p className="text-gray-400 mt-3">
-          {user?.email}
-        </p>
+) : active === "certificates" ? (
+
+  <CertificateSection progress={progress} />
+
+) : (
+
+  <>
+  
+
 
         {hasPurchased ? (
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
+
+        
                       {/* My Courses */}
             <div
               onClick={() => navigate("/courses")}
@@ -122,11 +130,16 @@ export default function Dashboard() {
               <h3 className="text-2xl font-bold text-yellow-400">
                 📚 My Courses
               </h3>
+            
 
               <p className="text-gray-300 mt-3">
                 View all your purchased courses.
               </p>
-            </div>
+            
+              </div>
+            
+
+          
 
             {/* Continue Learning */}
             <div
@@ -180,6 +193,7 @@ export default function Dashboard() {
 
         ) : (
 
+        
           <div className="mt-10 bg-red-900 border border-red-500 rounded-xl p-8 text-center">
 
             <h2 className="text-3xl font-bold">
@@ -199,10 +213,17 @@ export default function Dashboard() {
 
           </div>
 
-        )}
+                )}
 
-      </div>
+      </>
+
+    )}
+
+  </div>
 
     </div>
-  );
+
+  </div>
+
+);
 }

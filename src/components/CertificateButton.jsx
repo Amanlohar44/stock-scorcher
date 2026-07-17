@@ -1,16 +1,43 @@
-import generateCertificate from "../utils/generateCertificate";
-import { auth } from "../firebase";
+import { downloadCertificate } from "../utils/generateCertificate";
+import { auth, db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function CertificateButton() {
-  const handleDownload = () => {
-    const user = auth.currentUser;
+  const handleDownload = async () => {
+    try {
+      const user = auth.currentUser;
 
-    const name =
-      user?.displayName ||
-      user?.email?.split("@")[0] ||
-      "Student";
+      if (!user) return;
 
-    generateCertificate(name);
+      const name =
+        user.displayName ||
+        user.email?.split("@")[0] ||
+        "Student";
+
+      const certificateId =
+        "SSC-" + Date.now().toString().slice(-8);
+
+      await setDoc(doc(db, "certificates", certificateId), {
+        certificateId,
+        studentName: name,
+        email: user.email,
+        course: "Stock Market Mastery Course",
+        completionDate: new Date().toLocaleDateString("en-GB"),
+        issuedBy: "Stock Scorcher",
+        founder: "Aman Lohar",
+        createdAt: new Date(),
+      });
+
+      await downloadCertificate(
+  name,
+  certificateId
+);
+
+      alert("✅ Certificate Downloaded Successfully");
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong.");
+    }
   };
 
   return (

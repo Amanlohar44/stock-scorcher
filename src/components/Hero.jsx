@@ -2,45 +2,73 @@ import hero from "../assets/hero.png";
 
 export default function Hero() {
   return (
-    <section className="bg-black text-white py-16 md:py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col-reverse md:flex-row items-center gap-10 md:gap-12">
-
+    <section className="relative overflow-hidden bg-gradient-to-r from-black via-[#081325] to-black text-white">
+      <div className="max-w-7xl mx-auto px-6 h-[85vh] flex flex-col-reverse lg:flex-row items-center justify-between gap-12">
         {/* Left */}
-        <div className="flex-1 text-center md:text-left">
+        <div className="flex-1 flex flex-col justify-center text-center md:text-left -mt-20">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold leading-tight">
-            Master the{" "}
-            <span className="text-yellow-400">
-              Stock Market
-            </span>
-          </h1>
+  Master the
+  <br />
+  <span className="text-yellow-400">
+    Stock Market
+  </span>
 
-          <p className="text-gray-400 mt-6 text-base sm:text-lg max-w-xl mx-auto md:mx-0">
-            Learn Chart Patterns, Candlestick Analysis, Swing Trading,
-            Price Action and Professional Trading Strategies with
-            Stock Scorcher.
-          </p>
+  <br />
 
-          <div className="mt-8 md:mt-10 flex flex-col sm:flex-row gap-4 sm:gap-5">
-            <button className="w-full sm:w-auto bg-yellow-400 text-black px-8 py-4 rounded-xl font-bold hover:scale-105 duration-300">
-              Get Started
-            </button>
+  <span className="block mt-1 text-xl sm:text-2xl md:text-3xl text-white font-semibold">
+  Like a Professional
+</span>
+</h1>
 
-            <button className="w-full sm:w-auto border border-yellow-400 text-yellow-400 px-8 py-4 rounded-xl hover:bg-yellow-400 hover:text-black duration-300">
-              Learn More
-            </button>
+          <p className="text-gray-400 mt-2 text-base md:text-lg leading-7 max-w-xl mx-auto md:mx-0">
+  Learn Chart Patterns, Price Action, Swing Trading & Candlestick Analysis with
+  <span className="text-yellow-400 font-semibold"> Stock Scorcher</span>.
+  Practical lessons designed for beginners by
+  <div className="mt-4 inline-flex items-center px-4 py-2 rounded-full border border-yellow-400 text-yellow-400 font-semibold">
+  Founded by Aman Lohar
+</div>
+</p>
+
+          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+          
+                      <button className="min-w-[170px] h-14 bg-yellow-400 text-black font-bold rounded-xl hover:scale-105 duration-300 whitespace-nowrap">
+  Get Started
+</button>
+
+            <button className="min-w-[170px] h-14 border border-yellow-400 text-yellow-400 font-bold rounded-xl hover:bg-yellow-400 hover:text-black duration-300 whitespace-nowrap">
+  Learn More
+</button>
+            <p className="mt-4 whitespace-nowrap text-sm text-gray-400">
+  ⭐ Trusted by Beginners • 100% Practical Learning
+</p>
           </div>
         </div>
 
-        {/* Right */}
-        <div className="flex-1 flex justify-center">
-          <img
-            src={hero}
-            alt="Stock Market"
-            className="w-full max-w-xs sm:max-w-md md:max-w-lg drop-shadow-[0_0_40px_rgba(255,193,7,0.5)]"
-          />
-        </div>
+       {/* Right */}
+<div className="lg:w-1/2 flex justify-center items-end relative">
+
+  {/* Blue Glow */}
+  <div className="absolute w-[500px] h-[500px] bg-blue-600/30 blur-[120px] rounded-full"></div>
+
+  <img
+  src={hero}
+  alt="Aman Lohar"
+  className="relative z-10 w-[430px] lg:w-[500px] object-contain transition duration-500 hover:scale-105"
+/>
+{/* Founder Name */}
+<div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-30 text-center">
+  <h3 className="text-white text-3xl font-bold">
+  Stock Scorcher
+</h3>
+
+<p className="text-yellow-400 text-sm tracking-[3px] uppercase">
+  Founder • Aman Lohar
+</p>
+</div>
+</div>
 
       </div>
-    </section>
+      {/* Bottom Fade */}
+<div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black via-black/95 to-transparent z-10 pointer-events-none"></div>    </section>
   );
 }

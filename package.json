@@ -1,5 +1,5 @@
 {
-  "name": "stock-scorcher",
+  "name": "stock-scorcher-new",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,14 +12,13 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.2",
     "axios": "^1.18.1",
-    "firebase": "^12.15.0",
+    "firebase": "^12.16.0",
     "jspdf": "^4.2.1",
+    "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.1",
-    "react-youtube": "^10.1.0",
-    "resend": "^6.17.2",
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
