@@ -3,7 +3,7 @@ import hero from "../assets/hero.png";
 export default function Hero() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-r from-black via-[#081325] to-black text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-screen lg:min-h-[85vh] flex flex-col-reverse lg:flex-row items-center justify-center lg:justify-between gap-10 lg:gap-12 py-10">
+      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-0 min-h-screen lg:h-[85vh] flex flex-col lg:flex-row justify-center items-center gap-12">
         {/* Left */}
         <div className="flex-1 flex flex-col justify-center text-center lg:text-left">
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold leading-tight">
@@ -49,7 +49,7 @@ export default function Hero() {
         </div>
 
        {/* Right */}
-<div className="lg:w-1/2 flex justify-center items-end relative">
+<div className="lg:w-1/2 flex justify-center items-center relative mt-10 lg:mt-0">
 
   {/* Blue Glow */}
   <div className="absolute w-[250px] h-[250px] sm:w-[350px] sm:h-[350px] lg:w-[500px] lg:h-[500px] bg-blue-600/30 blur-[120px] rounded-full"></div>
@@ -60,7 +60,7 @@ export default function Hero() {
   className="relative z-10 w-[260px] sm:w-[340px] md:w-[430px] lg:w-[500px] object-contain transition duration-500 hover:scale-105"
 />
 {/* Founder Name */}
-<div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-30 text-center">
+<div className="mt-5 text-center lg:absolute lg:bottom-28 lg:left-1/2 lg:-translate-x-1/2">
   <h3 className="text-white text-3xl font-bold">
   Stock Scorcher
 </h3>
