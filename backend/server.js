@@ -72,7 +72,7 @@ app.use((req, res, next) => {
 
 // ===================== CREATE ORDER =====================
 
-app.post("/verify-payment", async (req, res) => {
+app.post("/create-order", async (req, res) => {
   console.log("🔥 CREATE ORDER HIT");
 
   try {
@@ -103,7 +103,7 @@ app.post("/verify-payment", async (req, res) => {
 
 console.log("✅ VERIFY ROUTE LOADED");
 
-app.post("/verify-payment", (req, res) => {
+app.post("/verify-payment", async (req, res) => {
   console.log("🔥 VERIFY PAYMENT API HIT");
   console.log(req.body);
 
