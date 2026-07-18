@@ -11,16 +11,16 @@ export default function Courses() {
   };
 
   return (
-    <section className="bg-[#0b0b0f] py-20" id="courses">
-      <div className="max-w-7xl mx-auto px-6">
-        <h2 className="text-5xl font-bold text-center text-yellow-400 mb-14">
+    <section className="bg-[#0b0b0f] py-14 md:py-20 px-5 sm:px-6 lg:px-8" id="courses">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-yellow-400 mb-10 md:mb-14">
           Our Premium Courses
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
-            <h3 className="text-3xl font-bold text-yellow-400 mb-4">
+          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-6 md:p-8 transition duration-300 lg:hover:scale-105">
+            <h3 className="text-2xl md:text-3xl font-bold text-yellow-400 mb-4">
               Master Chart Patterns
             </h3>
 
@@ -36,8 +36,8 @@ export default function Courses() {
             </button>
           </div>
 
-          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
-            <h3 className="text-3xl font-bold text-yellow-400 mb-4">
+          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-6 md:p-8 transition duration-300 lg:hover:scale-105">
+            <h3 className="text-2xl md:text-3xl font-bold text-yellow-400 mb-4">
               Swing Trading Mastery
             </h3>
 
@@ -53,8 +53,8 @@ export default function Courses() {
             </button>
           </div>
 
-          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
-            <h3 className="text-3xl font-bold text-yellow-400 mb-4">
+          <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-6 md:p-8 transition duration-300 lg:hover:scale-105">
+            <h3 className="text-2xl md:text-3xl font-bold text-yellow-400 mb-4">
               Candlestick Analysis
             </h3>
 

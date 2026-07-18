@@ -27,9 +27,9 @@ export default function Faq() {
   const [open, setOpen] = useState(null);
 
   return (
-    <section className="bg-black py-16 md:py-20 px-4 sm:px-6">
+    <section className="bg-black py-14 md:py-20 px-5 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-3xl md:text-5xl font-bold text-center text-yellow-400 mb-10 md:mb-12">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-yellow-400 mb-10 md:mb-12">
           Frequently Asked Questions
         </h2>
 
@@ -40,13 +40,13 @@ export default function Faq() {
           >
             <button
               onClick={() => setOpen(open === index ? null : index)}
-              className="w-full flex justify-between items-center text-left bg-zinc-900 p-4 md:p-5 hover:bg-zinc-800 transition"
+              className="w-full flex justify-between items-center text-left bg-zinc-900 p-4 md:p-5 transition lg:hover:bg-zinc-800"
             >
               <span className="font-semibold text-sm md:text-lg pr-4">
                 {faq.question}
               </span>
 
-              <span className="text-yellow-400 text-2xl font-bold">
+              <span className="text-yellow-400 text-xl sm:text-2xl font-bold">
                 {open === index ? "−" : "+"}
               </span>
             </button>

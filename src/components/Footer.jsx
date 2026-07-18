@@ -9,13 +9,13 @@ import {
 export default function Footer() {
   return (
     <footer className="bg-zinc-950 border-t border-yellow-500/20 mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-14">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-12 md:py-14">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-center md:text-left">
 
           {/* Brand */}
           <div>
-            <h2 className="text-3xl font-bold text-yellow-400">
+            <h2 className="text-3xl md:text-4xl font-bold text-yellow-400">
               Stock Scorcher
             </h2>
 
@@ -61,13 +61,13 @@ export default function Footer() {
               Follow Us
             </h3>
 
-            <div className="flex flex-wrap gap-4 text-2xl">
+            <div className="flex flex-wrap justify-center md:justify-start gap-5 text-2xl">
 
               <a
                 href="https://www.instagram.com/stockscorcherofficial?igsh=Nm0ycHdta2Nhc2Qx"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-pink-500 transition"
+                className="transition lg:hover:text-pink-500"
                 title="Official Instagram"
               >
                 <FaInstagram />
@@ -77,7 +77,7 @@ export default function Footer() {
                 href="https://www.instagram.com/amanlohar44?igsh=Yjc5MHF6NWM2YXY5"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-pink-500 transition"
+                className="transition lg:hover:text-pink-500"
                 title="Aman Lohar"
               >
                 <FaInstagram />
@@ -87,7 +87,7 @@ export default function Footer() {
                 href="https://youtube.com/@stockscorcherofficial?si=bYbEZLv8qku-y-Pq"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-red-500 transition"
+                className="transition lg:hover:text-pink-500"
                 title="YouTube"
               >
                 <FaYoutube />
@@ -97,7 +97,7 @@ export default function Footer() {
                 href="https://t.me/stockscorcher"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-sky-400 transition"
+                className="transition lg:hover:text-pink-500"
                 title="Telegram"
               >
                 <FaTelegramPlane />
@@ -107,17 +107,17 @@ export default function Footer() {
                 href="https://wa.me/message/GWDVWEYHKZ63G1"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-green-500 transition"
+                className="transition lg:hover:text-pink-500"
                 title="WhatsApp"
               >
                 <FaWhatsapp />
               </a>
 
               <a
-                href="https://linktr.ee/stockscorcherofficial"
+                href="https://linktr.ee/stockscorcher_official"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-yellow-400 transition"
+                className="transition lg:hover:text-pink-500"
                 title="Linktree"
               >
                 <FaLink />

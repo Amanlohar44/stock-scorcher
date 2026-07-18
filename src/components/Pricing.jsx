@@ -106,13 +106,13 @@ setTimeout(() => {
   };
 
   return (
-    <section className="bg-[#0b0b0f] py-16 md:py-20 px-4 sm:px-6">
+    <section className="bg-[#0b0b0f] py-14 md:py-20 px-5 sm:px-6 lg:px-8" id="pricing">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl md:text-5xl font-bold text-center text-yellow-400 mb-10 md:mb-14">
           Choose Your Plan
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
 
           {/* Basic */}
 <div className="bg-zinc-900 border border-gray-700 rounded-2xl p-6 md:p-8 text-center">
@@ -139,7 +139,7 @@ setTimeout(() => {
 </div>
 
           {/* Premium */}
-<div className="bg-yellow-400 text-black rounded-2xl p-6 md:p-8 text-center lg:scale-105 shadow-xl">
+<div className="bg-yellow-400 text-black rounded-2xl p-6 md:p-8 text-center shadow-xl lg:scale-105 lg:hover:scale-110 transition duration-300">
   <p className="font-bold mb-2 text-sm md:text-base">
     🔥 MOST POPULAR
   </p>
@@ -161,7 +161,7 @@ setTimeout(() => {
 
   <button
     onClick={() => handlePayment(6999)}
-    className="w-full bg-black text-yellow-400 py-3 rounded-xl font-bold hover:bg-zinc-900 transition"
+    className="w-full bg-black text-yellow-400 py-3 rounded-xl font-bold hover:bg-zinc-900 transition duration-300 lg:hover:scale-105"
   >
     Buy Now
   </button>
@@ -185,8 +185,8 @@ setTimeout(() => {
   </ul>
 
   <button
-    onClick={() => handlePayment(1)}
-    className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition"
+    onClick={() => handlePayment(9999)}
+    className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition duration-300 lg:hover:scale-105"
   >
     Buy Now
   </button>
