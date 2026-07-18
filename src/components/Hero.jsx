@@ -60,7 +60,7 @@ export default function Hero() {
   className="relative z-10 w-[260px] sm:w-[340px] md:w-[430px] lg:w-[500px] object-contain transition duration-500 hover:scale-105"
 />
 {/* Founder Name */}
-<div className="mt-5 text-center lg:absolute lg:bottom-28 lg:left-1/2 lg:-translate-x-1/2">
+<div className="mt-5 text-center lg:hidden">
   <h3 className="text-white text-3xl font-bold">
   Stock Scorcher
 </h3>
