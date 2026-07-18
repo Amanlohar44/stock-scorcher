@@ -27,23 +27,23 @@ const handleLogout = async () => {
   return (
     <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-yellow-500/20">
 
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
 
         {/* Logo */}
-        <div className="flex items-center gap-1">
-          <img
-            src={logo}
-            alt="Stock Scorcher"
-            className="w-18 h-18 object-contain"
-          />
+        <div className="flex items-center gap-2 min-w-0">
+  <img
+    src={logo}
+    alt="Stock Scorcher"
+    className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 object-contain flex-shrink-0"
+  />
 
-          <h1 className="text-3xl font-extrabold text-yellow-400">
-            Stock Scorcher
-          </h1>
-        </div>
+  <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-yellow-400 truncate">
+    Stock Scorcher
+  </h1>
+</div>
 
         {/* Desktop Menu */}
-        <ul className="hidden md:flex items-center gap-10 text-white font-medium">
+        <ul className="hidden md:flex items-center gap-6 lg:gap-10 text-white font-medium">
 
           <li><a href="#home" className="hover:text-yellow-400 duration-300">Home</a></li>
           <li><a href="#features" className="hover:text-yellow-400 duration-300">Features</a></li>
@@ -106,7 +106,7 @@ const handleLogout = async () => {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-yellow-400 text-3xl"
+          className="md:hidden text-yellow-400 text-3xl flex-shrink-0"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           {menuOpen ? <HiX /> : <HiMenu />}
@@ -120,7 +120,11 @@ const handleLogout = async () => {
 
           <div className="flex flex-col py-4">
 
-            <a href="#home" className="px-6 py-3 hover:text-yellow-400 text-white">Home</a>
+            <a
+  href="#home"
+  onClick={() => setMenuOpen(false)}
+  className="px-6 py-3 hover:text-yellow-400 text-white"
+>Home</a>
             <a href="#features" className="px-6 py-3 hover:text-yellow-400 text-white">Features</a>
             <a href="#courses" className="px-6 py-3 hover:text-yellow-400 text-white">Courses</a>
             <a href="#pricing" className="px-6 py-3 hover:text-yellow-400 text-white">Pricing</a>
@@ -132,7 +136,8 @@ const handleLogout = async () => {
 
     <>
       <Link
-        to="/dashboard"
+  to="/dashboard"
+  onClick={() => setMenuOpen(false)}
         className="block text-center bg-yellow-400 text-black py-3 rounded-xl font-semibold mb-3"
       >
         Dashboard
@@ -149,7 +154,8 @@ const handleLogout = async () => {
   ) : (
 
     <Link
-      to="/login"
+  to="/login"
+  onClick={() => setMenuOpen(false)}
       className="block text-center bg-yellow-400 text-black py-3 rounded-xl font-semibold"
     >
       Login
