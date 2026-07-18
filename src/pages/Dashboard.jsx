@@ -19,8 +19,9 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(0);
   const [lastLesson, setLastLesson] = useState(0);
   const [active, setActive] = useState("dashboard");
+const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const totalLessons = 5;
+ const totalLessons = 5;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -87,19 +88,24 @@ export default function Dashboard() {
   }
 
   return (
-  <div className="min-h-screen bg-black text-white flex">
+  <div className="min-h-screen bg-black text-white flex lg:flex-row">
 
       <DashboardSidebar
   active={active}
   setActive={setActive}
   handleLogout={handleLogout}
+  sidebarOpen={sidebarOpen}
+  setSidebarOpen={setSidebarOpen}
 />
 
 <div className="flex-1">
 
-  <DashboardTopbar user={user} />
+  <DashboardTopbar
+  user={user}
+  setSidebarOpen={setSidebarOpen}
+/>
 
-  <div className="max-w-7xl mx-auto px-8 py-10">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
 
       
 
@@ -119,7 +125,7 @@ export default function Dashboard() {
 
         {hasPurchased ? (
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
 
         
                       {/* My Courses */}

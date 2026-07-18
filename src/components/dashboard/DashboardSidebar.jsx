@@ -14,28 +14,58 @@ export default function DashboardSidebar({
   active,
   setActive,
   handleLogout,
+  sidebarOpen,
+  setSidebarOpen,
 }) {
 
     const navigate = useNavigate();
 
   return (
-    <aside className="w-72 min-h-screen bg-zinc-950 border-r border-yellow-500/20 p-6">
+    <>
+  {/* Mobile Overlay */}
+  {sidebarOpen && (
+    <div
+      className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+      onClick={() => setSidebarOpen(false)}
+    />
+  )}
 
-      <h1 className="text-3xl font-bold text-yellow-400 mb-10">
-        Stock Scorcher
-      </h1>
+  <aside
+    className={`
+      fixed lg:static
+      top-0 left-0
+      h-screen
+      w-72
+      bg-zinc-950
+      border-r border-yellow-500/20
+      p-6
+      z-50
+      transform transition-transform duration-300
+      ${
+        sidebarOpen
+          ? "translate-x-0"
+          : "-translate-x-full lg:translate-x-0"
+      
+      }
+    `}
+  >
 
-      <div className="space-y-2">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-8">
+  Stock Scorcher
+</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-3">
 
         <button
   onClick={() => {
     setActive("dashboard");
     navigate("/dashboard");
+    setSidebarOpen(false);
   }}
-  className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
+  className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm md:text-base transition ${
     active === "dashboard"
       ? "bg-yellow-400 text-black font-bold"
-      : "text-white hover:bg-zinc-800"
+      : "text-white lg:hover:bg-zinc-800"
   }`}
 >
   <FaHome />
@@ -44,13 +74,14 @@ export default function DashboardSidebar({
 
         <button
   onClick={() => {
-    setActive("courses");
-    navigate("/courses");
-  }}
-  className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
+  setActive("courses");
+  navigate("/courses");
+  setSidebarOpen(false);
+}}
+  className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm md:text-base transition ${
     active === "courses"
       ? "bg-yellow-400 text-black font-bold"
-      : "text-white hover:bg-zinc-800"
+      : "text-white lg:hover:bg-zinc-800"
   }`}
 >
           
@@ -60,12 +91,13 @@ export default function DashboardSidebar({
 
         <button
           onClick={() => {
-    setActive("profile");
+  setActive("profile");
+  setSidebarOpen(false);
 }}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm md:text-base transition ${
             active === "profile"
               ? "bg-yellow-400 text-black font-bold"
-              : "text-white hover:bg-zinc-800"
+              : "text-white lg:hover:bg-zinc-800"
           }`}
         >
           <FaUser />
@@ -73,11 +105,14 @@ export default function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => setActive("certificates")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
+          onClick={() => {
+  setActive("certificates");
+  setSidebarOpen(false);
+}}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm md:text-base transition ${
             active === "certificates"
               ? "bg-yellow-400 text-black font-bold"
-              : "text-white hover:bg-zinc-800"
+              : "text-white lg:hover:bg-zinc-800"
           }`}
         >
           <FaCertificate />
@@ -85,11 +120,14 @@ export default function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => setActive("settings")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
+          onClick={() => {
+  setActive("settings");
+  setSidebarOpen(false);
+}}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm md:text-base transition ${
             active === "settings"
               ? "bg-yellow-400 text-black font-bold"
-              : "text-white hover:bg-zinc-800"
+              : "text-white lg:hover:bg-zinc-800"
           }`}
         >
           <FaCog />
@@ -97,16 +135,22 @@ export default function DashboardSidebar({
         </button>
 
         <button
-          onClick={() => navigate("/")}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-white hover:bg-zinc-800 transition"
+          onClick={() => {
+  navigate("/");
+  setSidebarOpen(false);
+}}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-white lg:hover:bg-zinc-800 transition"
         >
           <FaGlobe />
           Back to Website
         </button>
 
         <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition"
+          onClick={() => {
+  handleLogout();
+  setSidebarOpen(false);
+}}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-red-400 lg:hover:bg-red-500 lg:hover:text-white transition"
         >
           <FaSignOutAlt />
           Logout
@@ -114,5 +158,6 @@ export default function DashboardSidebar({
 
       </div>
     </aside>
+    </>
   );
 }
