@@ -118,7 +118,7 @@ export default function Courses() {
     );
   }
   return (
-  <div className="min-h-screen bg-black text-white px-8 py-10">
+  <div className="min-h-screen bg-black text-white px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
     <ModuleLoader
       setLessons={setDays}
@@ -126,11 +126,20 @@ export default function Courses() {
       setCurrentLesson={setCurrentLesson}
     />
 
-    <h1 className="text-5xl font-bold text-yellow-400 mb-10">
+<div className="mb-6">
+  <button
+    onClick={() => navigate("/dashboard")}
+    className="flex items-center gap-2 bg-zinc-800 hover:bg-yellow-400 hover:text-black transition px-5 py-3 rounded-xl font-semibold"
+  >
+    ← Back to Dashboard
+  </button>
+</div>
+
+    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-yellow-400 mb-8 text-center lg:text-left">
       📚 Stock Market Mastery
     </h1>
 
-    <div className="grid lg:grid-cols-2 gap-10">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
       {/* LEFT SIDE */}
       <div>
@@ -153,7 +162,7 @@ export default function Courses() {
                 setCurrentVideo("");
                 setCurrentLesson(null);
               }}
-              className="mb-4 bg-zinc-800 hover:bg-zinc-700 px-5 py-2 rounded-lg font-bold"
+              className="mb-4 px-4 py-2 text-sm sm:text-base bg-zinc-800 hover:bg-zinc-700 rounded-lg font-bold"
             >
               ← Back to Course
             </button>
@@ -166,7 +175,7 @@ export default function Courses() {
             />
           </>
         ) : (
-          <div className="border-2 border-yellow-500 rounded-2xl h-[500px] flex items-center justify-center text-3xl text-gray-400">
+          <div className="border-2 border-yellow-500 rounded-2xl h-[220px] sm:h-[300px] lg:h-[500px] flex items-center justify-center text-lg sm:text-2xl lg:text-3xl text-gray-400 text-center px-4">
             📚 Select any lesson from Day List
           </div>
         )}
