@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import StockAnalysis from "./pages/StockAnalysis";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -10,15 +10,43 @@ import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Membership from "./pages/Membership";
+import MemberDashboard from "./pages/MemberDashboard";
+import ScrollToHash from "./components/ScrollToHash";
+
 
 export default function App() {
   return (
+
     <BrowserRouter>
-      <Routes>
+
+  <ScrollToHash />
+
+  <Routes>
         <Route
   path="/verify-certificate"
   element={<VerifyCertificate />}
 />
+
+<Route
+  path="/stock-analysis"
+  element={<StockAnalysis />}
+/>
+
+<Route
+  path="/membership"
+  element={<Membership />}
+/>
+
+<Route
+  path="/member-dashboard"
+  element={
+    <ProtectedRoute>
+      <MemberDashboard />
+    </ProtectedRoute>
+  }
+/>
+
 
         {/* Public Routes */}
         <Route path="/" element={<Home />} />

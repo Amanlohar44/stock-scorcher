@@ -2,17 +2,23 @@ import axios from "axios";
 import { auth, db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import {
+  Crown,
+  Check,
+  Sparkles,
+  Star,
+  ArrowRight,
+} from "lucide-react";
 
 export default function Pricing() {
   const navigate = useNavigate();
+
   const handlePayment = async (amount) => {
     try {
-      console.log("🔥 Creating Order...");
-
-     const { data } = await axios.post(
-  "https://stock-scorcher-backend.onrender.com/create-order",
-  { amount }
-);
+      const { data } = await axios.post(
+        "https://stock-scorcher-backend.onrender.com/create-order",
+        { amount }
+      );
 
       const options = {
         key: "rzp_live_TB6ROKtV9GwMGv",
@@ -23,30 +29,30 @@ export default function Pricing() {
         order_id: data.id,
 
         modal: {
-  ondismiss: function () {
-    document
-      .querySelectorAll(".razorpay-container")
-      .forEach((e) => e.remove());
-  },
-},
+          ondismiss: function () {
+            document
+              .querySelectorAll(".razorpay-container")
+              .forEach((e) => e.remove());
+          },
+        },
 
-        handler: async function (response)  {
+        handler: async function (response) {
           try {
             document
-  .querySelectorAll(".razorpay-container")
-  .forEach((e) => e.remove());
+              .querySelectorAll(".razorpay-container")
+              .forEach((e) => e.remove());
 
             const verify = await axios.post(
-  "https://stock-scorcher-backend.onrender.com/verify-payment",
-  {
-    razorpay_order_id: response.razorpay_order_id,
-    razorpay_payment_id: response.razorpay_payment_id,
-    razorpay_signature: response.razorpay_signature,
-
-    email: auth.currentUser?.email,
-    amount: amount,
-  }
-);
+              "https://stock-scorcher-backend.onrender.com/verify-payment",
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:
+                  response.razorpay_signature,
+                email: auth.currentUser?.email,
+                amount,
+              }
+            );
 
             if (verify.data.success) {
               const user = auth.currentUser;
@@ -55,37 +61,41 @@ export default function Pricing() {
                 await setDoc(
                   doc(db, "purchases", user.uid),
                   {
-  uid: user.uid,
-  email: user.email,
-  course: amount,
-  purchased: true,
-  paymentStatus: "paid",
-  paymentId: response.razorpay_payment_id,
-  orderId: response.razorpay_order_id,
-  purchasedAt: new Date().toISOString(),
-},
+                    uid: user.uid,
+                    email: user.email,
+                    course: amount,
+                    purchased: true,
+                    paymentStatus: "paid",
+                    paymentId:
+                      response.razorpay_payment_id,
+                    orderId:
+                      response.razorpay_order_id,
+                    purchasedAt:
+                      new Date().toISOString(),
+                  },
                   { merge: true }
                 );
               }
 
               alert("🎉 Payment Successful!");
 
-setTimeout(() => {
-  navigate("/payment-success");
-}, 1000);
+              setTimeout(() => {
+                navigate("/payment-success");
+              }, 1000);
             } else {
-              alert("❌ Verification Failed");
+              alert("Verification Failed");
             }
           } catch (err) {
-            console.error(err);
-            alert("Verification Error");
+            console.log(err);
           }
         },
 
         prefill: {
-  name: auth.currentUser?.displayName || "Student",
-  email: auth.currentUser?.email || "",
-},
+          name:
+            auth.currentUser?.displayName ||
+            "Student",
+          email: auth.currentUser?.email || "",
+        },
 
         theme: {
           color: "#facc15",
@@ -93,106 +103,304 @@ setTimeout(() => {
       };
 
       const razor = new window.Razorpay(options);
+
       razor.open();
+
       razor.on("payment.failed", function () {
-  document
-    .querySelectorAll(".razorpay-container")
-    .forEach((e) => e.remove());
-});
+        document
+          .querySelectorAll(".razorpay-container")
+          .forEach((e) => e.remove());
+      });
     } catch (err) {
-      console.error(err);
-      alert("Payment Failed");
+      console.log(err);
     }
   };
 
   return (
-    <section className="bg-[#0b0b0f] py-14 md:py-20 px-5 sm:px-6 lg:px-8" id="pricing">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl md:text-5xl font-bold text-center text-yellow-400 mb-10 md:mb-14">
-          Choose Your Plan
-        </h2>
+    <section
+      id="pricing"
+      className="relative overflow-hidden bg-[#030303] py-28"
+    >
+      {/* Background */}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
+      <div className="absolute inset-0">
 
-          {/* Basic */}
-<div className="bg-zinc-900 border border-gray-700 rounded-2xl p-6 md:p-8 text-center">
-  <h3 className="text-2xl md:text-3xl font-bold mb-4">
-    Basic
-  </h3>
+        <div className="absolute inset-0 bg-[#030303]" />
 
-  <p className="text-4xl md:text-5xl font-bold text-yellow-400 mb-6">
-    ₹999
-  </p>
+        <div className="absolute -top-44 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-yellow-400/10 blur-[180px]" />
 
-  <ul className="space-y-3 text-gray-300 mb-8">
-    <li>✔ Beginner Friendly</li>
-    <li>✔ Basic Learning</li>
-    <li>✔ Coming Soon</li>
-  </ul>
+        <div className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[180px]" />
 
-  <button
-    disabled
-    className="w-full bg-gray-600 text-white py-3 rounded-xl cursor-not-allowed"
-  >
-    Coming Soon
-  </button>
-</div>
-
-          {/* Premium */}
-<div className="bg-yellow-400 text-black rounded-2xl p-6 md:p-8 text-center shadow-xl lg:scale-105 lg:hover:scale-110 transition duration-300">
-  <p className="font-bold mb-2 text-sm md:text-base">
-    🔥 MOST POPULAR
-  </p>
-
-  <h3 className="text-2xl md:text-3xl font-bold mb-4">
-    Premium
-  </h3>
-
-  <p className="text-4xl md:text-5xl font-bold mb-6">
-    ₹6999
-  </p>
-
-  <ul className="space-y-3 mb-8">
-    <li>✔ Complete Recorded Course</li>
-    <li>✔ PDF Notes</li>
-    <li>✔ Lifetime Access</li>
-    <li>✔ Free Future Updates</li>
-  </ul>
-
-  <button
-    onClick={() => handlePayment(6999)}
-    className="w-full bg-black text-yellow-400 py-3 rounded-xl font-bold hover:bg-zinc-900 transition duration-300 lg:hover:scale-105"
-  >
-    Buy Now
-  </button>
-</div>
-
-         {/* Pro */}
-<div className="bg-zinc-900 border border-gray-700 rounded-2xl p-6 md:p-8 text-center">
-  <h3 className="text-2xl md:text-3xl font-bold mb-4">
-    Pro Mentorship
-  </h3>
-
-  <p className="text-4xl md:text-5xl font-bold text-yellow-400 mb-6">
-    ₹9999
-  </p>
-
-  <ul className="space-y-3 text-gray-300 mb-8">
-    <li>✔ Everything in Premium</li>
-    <li>✔ Live Mentorship</li>
-    <li>✔ Portfolio Review</li>
-    <li>✔ Priority Support</li>
-  </ul>
-
-  <button
-    onClick={() => handlePayment(9999)}
-    className="w-full bg-yellow-400 text-black py-3 rounded-xl font-bold hover:bg-yellow-300 transition duration-300 lg:hover:scale-105"
-  >
-    Buy Now
-  </button>
-</div>
-        </div>
       </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6">
+
+        <div className="text-center">
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-5 py-2 text-yellow-400">
+
+            <Sparkles size={16} />
+
+            Course Plans
+
+          </div>
+
+          <h2 className="mt-8 text-5xl md:text-6xl font-black text-white">
+
+            Choose Your
+
+            <span className="block bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
+
+              Learning Plan
+
+            </span>
+
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-zinc-400">
+
+            Learn Stock Market from beginner to professional with recorded
+            courses, mentorship and lifetime support.
+
+          </p>
+
+        </div>
+
+        <div className="mt-20 grid gap-8 lg:grid-cols-3">
+
+                    {/* Basic Plan */}
+
+          <div className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-3 hover:border-zinc-500 hover:shadow-[0_0_45px_rgba(255,255,255,.08)]">
+
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800 text-white">
+
+              <Star size={30} />
+
+            </div>
+
+            <h3 className="mt-8 text-3xl font-black text-white">
+              Basic
+            </h3>
+
+            <div className="mt-6 flex items-end gap-2">
+
+              <span className="text-5xl font-black text-white">
+                ₹999
+              </span>
+
+              <span className="pb-2 text-zinc-400">
+                One Time
+              </span>
+
+            </div>
+
+            <div className="my-8 h-px bg-white/10" />
+
+            <div className="space-y-4">
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Beginner Friendly
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Basic Learning
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Coming Soon
+                </span>
+              </div>
+
+            </div>
+
+            <button
+              disabled
+              className="mt-10 w-full rounded-2xl bg-zinc-700 py-4 text-lg font-bold text-white cursor-not-allowed"
+            >
+              Coming Soon
+            </button>
+
+          </div>
+
+          {/* Premium Plan */}
+
+          <div className="group relative overflow-hidden rounded-[32px] border border-yellow-400 bg-gradient-to-b from-yellow-400/15 to-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-4 hover:shadow-[0_0_70px_rgba(250,204,21,.35)]">
+
+            <div className="absolute right-6 top-6 rounded-full bg-yellow-400 px-4 py-2 text-sm font-bold text-black">
+
+              🔥 MOST POPULAR
+
+            </div>
+
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-400 text-black">
+
+              <Crown size={30} />
+
+            </div>
+
+            <h3 className="mt-8 text-3xl font-black text-white">
+
+              Premium
+
+            </h3>
+
+            <div className="mt-6 flex items-end gap-2">
+
+              <span className="text-5xl font-black text-yellow-400">
+
+                ₹6999
+
+              </span>
+
+              <span className="pb-2 text-zinc-400">
+
+                One Time
+
+              </span>
+
+            </div>
+
+            <div className="my-8 h-px bg-white/10" />
+
+            <div className="space-y-4">
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Complete Recorded Course
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  PDF Notes
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Lifetime Access
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Free Future Updates
+                </span>
+              </div>
+
+            </div>
+
+            <button
+              onClick={() => handlePayment(6999)}
+              className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-yellow-400 py-4 text-lg font-bold text-black transition-all duration-300 hover:scale-[1.03] hover:bg-yellow-300"
+            >
+              Buy Now
+
+              <ArrowRight size={20} />
+
+            </button>
+
+          </div>
+
+                    {/* Pro Plan */}
+
+          <div className="group relative overflow-hidden rounded-[32px] border border-green-500/40 bg-gradient-to-b from-green-500/10 to-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-3 hover:shadow-[0_0_60px_rgba(34,197,94,.20)]">
+
+            <div className="absolute right-6 top-6 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white">
+
+              BEST VALUE
+
+            </div>
+
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500 text-white">
+
+              <Crown size={30} />
+
+            </div>
+
+            <h3 className="mt-8 text-3xl font-black text-white">
+
+              Pro Mentorship
+
+            </h3>
+
+            <div className="mt-6 flex items-end gap-2">
+
+              <span className="text-5xl font-black text-green-400">
+
+                ₹9999
+
+              </span>
+
+              <span className="pb-2 text-zinc-400">
+
+                One Time
+
+              </span>
+
+            </div>
+
+            <div className="my-8 h-px bg-white/10" />
+
+            <div className="space-y-4">
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Everything in Premium
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Live Mentorship
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Portfolio Review
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Check size={18} className="text-green-400" />
+                <span className="text-zinc-300">
+                  Priority Support
+                </span>
+              </div>
+
+            </div>
+
+            <button
+              onClick={() => handlePayment(9999)}
+              className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-[1.03] hover:bg-green-400"
+            >
+              Buy Now
+
+              <ArrowRight size={20} />
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
     </section>
   );
 }

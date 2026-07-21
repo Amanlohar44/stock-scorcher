@@ -1,35 +1,87 @@
+import {
+  GraduationCap,
+  CandlestickChart,
+  TrendingUp,
+  ShieldCheck,
+  FileText,
+  Infinity,
+} from "lucide-react";
+
+const features = [
+  {
+    title: "Master Chart Patterns",
+    icon: GraduationCap,
+  },
+  {
+    title: "Candlestick Analysis",
+    icon: CandlestickChart,
+  },
+  {
+    title: "Swing Trading",
+    icon: TrendingUp,
+  },
+  {
+    title: "Risk Management",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Lifetime Access",
+    icon: Infinity,
+  },
+  {
+    title: "PDF Notes",
+    icon: FileText,
+  },
+];
+
 export default function Features() {
-  const features = [
-    "Master Chart Patterns",
-    "Candlestick Analysis",
-    "Swing Trading",
-    "Risk Management",
-    "Lifetime Access",
-    "PDF Notes",
-  ];
-
   return (
-    <section className="bg-black py-14 md:py-20 px-5 sm:px-6 lg:px-8">
-      <h2 className="text-3xl md:text-4xl font-bold text-center text-yellow-400 mb-10 md:mb-12">
-        Why Choose Stock Scorcher?
-      </h2>
+    <section className="relative bg-[#030303] py-24 px-6">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 max-w-6xl mx-auto">
-        {features.map((item) => (
-          <div
-            key={item}
-            className="bg-zinc-900 p-6 md:p-8 rounded-xl border border-yellow-500 transition duration-300 lg:hover:scale-105"
-          >
-            <h3 className="text-xl md:text-2xl text-yellow-400 font-semibold mb-4">
-              {item}
-            </h3>
+      {/* Background Glow */}
+      <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-yellow-500/10 blur-[120px]" />
 
-            <p className="text-gray-300 text-sm md:text-base leading-7">
-              Learn professional strategies with detailed explanations and real
-              market examples.
-            </p>
-          </div>
-        ))}
+      <div className="relative mx-auto max-w-7xl">
+
+        <h2 className="text-center text-5xl font-black text-white">
+          Why Choose{" "}
+          <span className="bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">
+            Stock Scorcher?
+          </span>
+        </h2>
+
+        <p className="mx-auto mt-5 max-w-2xl text-center text-zinc-400 text-lg">
+          Everything you need to become a profitable trader in one premium platform.
+        </p>
+
+        <div className="mt-16 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+
+          {features.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.title}
+                className="group rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:border-yellow-400/60 hover:bg-white/10"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-400/10 text-yellow-400 transition-all duration-500 group-hover:bg-yellow-400 group-hover:text-black">
+                  <Icon size={32} />
+                </div>
+
+                <h3 className="mt-7 text-2xl font-bold text-white">
+                  {item.title}
+                </h3>
+
+                <p className="mt-4 leading-7 text-zinc-400">
+                  Learn professional strategies with real market examples,
+                  AI-powered education and practical trading concepts.
+                </p>
+              </div>
+            );
+          })}
+
+        </div>
+
       </div>
     </section>
   );

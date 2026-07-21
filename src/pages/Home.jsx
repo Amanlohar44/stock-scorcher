@@ -1,6 +1,6 @@
 import WhatsAppButton from "../components/WhatsAppButton";
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
+import Navbar from "../components/navbar/Navbar";
+import Hero from "../components/hero/Hero";
 import Features from "../components/Features";
 import Courses from "../components/Courses";
 import Testimonials from "../components/Testimonials";
@@ -9,40 +9,74 @@ import Faq from "../components/Faq";
 import Contact from "../components/Contact";
 import Footer from "../components/Footer";
 
+import PremiumFeatures from "../components/membership/PremiumFeatures";
+import PricingCards from "../components/membership/PricingCards";
+
 export default function Home() {
   return (
-    <div className="bg-black text-white">
+    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
 
       <Navbar />
 
-      <section id="home">
-        <Hero />
-      </section>
+      <main>
 
-      <section id="features">
-        <Features />
-      </section>
+        {/* Hero */}
+        <section id="home">
+          <Hero />
+        </section>
 
-      <section id="courses">
-        <Courses />
-      </section>
+        {/* Divider */}
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
 
-      <section id="testimonials">
-        <Testimonials />
-      </section>
+        {/* Why Choose */}
+        <section id="features">
+          <Features />
+        </section>
 
-      {/* IMPORTANT */}
-      <section id="pricing">
-        <Pricing />
-      </section>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-      <section id="faq">
-        <Faq />
-      </section>
+        {/* Courses */}
+        <section id="courses">
+          <Courses />
+        </section>
 
-      <section id="contact">
-        <Contact />
-      </section>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
+        {/* Premium Membership */}
+        <section id="membership">
+          <PremiumFeatures />
+          <PricingCards />
+        </section>
+
+<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
+        {/* Testimonials */}
+        <section id="testimonials">
+          <Testimonials />
+        </section>
+
+<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
+        {/* Pricing */}
+        <section id="pricing">
+          <Pricing />
+        </section>
+
+<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
+        {/* FAQ */}
+        <section id="faq">
+          <Faq />
+        </section>
+
+<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
+        {/* Contact */}
+        <section id="contact">
+          <Contact />
+        </section>
+
+      </main>
 
       <WhatsAppButton />
 
