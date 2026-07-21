@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 const plans = [
   {
     title: "Monthly",
-    price: "₹999",
+    price: "₹9",
     duration: "/month",
     badge: "Most Popular",
     color: "yellow",
