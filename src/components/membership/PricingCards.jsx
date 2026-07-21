@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 const plans = [
   {
     title: "Monthly",
-    price: "₹9",
+    price: "₹999",
     duration: "/month",
     badge: "Most Popular",
     color: "yellow",
@@ -273,12 +273,13 @@ export default function PricingCards() {
               </div>
                             {/* Button */}
               <button
-                onClick={() =>
-                  handleMembershipPayment(
-                    plan.title,
-                    plan.title === "Monthly" ? 999 : 9999
-                  )
-                }
+                
+  onClick={() =>
+    handleMembershipPayment(
+      plan.title,
+      1
+    )
+  }
                 className={`mt-10 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-all duration-300 ${
                   plan.color === "yellow"
                     ? "bg-yellow-400 text-black hover:scale-[1.03] hover:bg-yellow-300"
