@@ -106,6 +106,17 @@ export default function PricingCards() {
                   },
                   { merge: true }
                 );
+
+                await setDoc(
+  doc(db, "users", user.uid),
+  {
+    premium: true,
+    membershipStatus: "active",
+    membershipPlan: plan,
+    membershipExpiry: expiry.toISOString(),
+  },
+  { merge: true }
+);
               }
 
               alert("🎉 Membership Activated");
@@ -275,11 +286,11 @@ export default function PricingCards() {
               <button
                 
   onClick={() =>
-    handleMembershipPayment(
-      plan.title,
-      1
-    )
-  }
+  handleMembershipPayment(
+    plan.title,
+    plan.title === "Monthly" ? 999 : 9999
+  )
+}
                 className={`mt-10 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-all duration-300 ${
                   plan.color === "yellow"
                     ? "bg-yellow-400 text-black hover:scale-[1.03] hover:bg-yellow-300"

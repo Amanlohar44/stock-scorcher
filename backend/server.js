@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const axios = require("axios");
 const { Resend } = require("resend");
 require("dotenv").config();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -40,7 +41,7 @@ const app = express();
 app.use(cors({
   origin: [
     "https://stock-scorcher-eight.vercel.app",
-    "http://localhost:5173"
+    "http://localhost:5177"
   ],
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"],
@@ -68,6 +69,87 @@ app.get("/", (req, res) => {
 app.use((req, res, next) => {
   console.log(req.method, req.url);
   next();
+});
+
+// ===================== YAHOO API =====================
+
+app.get("/api/yahoo", async (req, res) => {
+  try {
+    const { symbol } = req.query;
+
+    const response = await axios.get(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.NS`
+    );
+
+    const result = response.data.chart.result[0];
+    const meta = result.meta;
+
+    res.json({
+      current: meta.regularMarketPrice,
+      high: meta.regularMarketDayHigh,
+      low: meta.regularMarketDayLow,
+      open: meta.regularMarketOpen,
+      previousClose: meta.previousClose,
+      percent:
+        ((meta.regularMarketPrice - meta.previousClose) /
+          meta.previousClose) *
+        100,
+    });
+
+  } catch (err) {
+    console.log(err.message);
+
+    res.status(500).json({
+      error: "Yahoo API Error",
+    });
+  }
+});
+
+// =====================
+// HISTORY API
+// =====================
+
+app.get("/api/history", async (req, res) => {
+  try {
+    const { symbol, market } = req.query;
+
+    let yahooSymbol = symbol;
+
+    // Indian Stocks
+    if (market === "indian-stock") {
+      yahooSymbol = `${symbol}.NS`;
+    }
+
+    // Forex
+    else if (market === "forex") {
+      yahooSymbol = `${symbol}=X`;
+    }
+
+    // Crypto (Yahoo format)
+    else if (market === "crypto") {
+      yahooSymbol = `${symbol}-USD`;
+    }
+
+    const response = await axios.get(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=6mo&interval=1d`
+    );
+
+    const result = response.data.chart.result[0];
+
+    const closes =
+      result.indicators.quote[0].close.filter(
+        (x) => x !== null
+      );
+
+    res.json(closes);
+
+  } catch (err) {
+    console.log(err.message);
+
+    res.status(500).json({
+      error: "History API Error",
+    });
+  }
 });
 
 // ===================== CREATE ORDER =====================

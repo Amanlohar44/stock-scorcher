@@ -1,32 +1,53 @@
-import Navbar from "../components/NavbarOld";
-import Footer from "../components/Footer";
+import MemberSidebar from "../components/member/MemberSidebar";
+import MemberTopbar from "../components/member/MemberTopbar";
 import StockSearch from "../components/StockSearch";
 
 export default function StockAnalysis() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white flex">
 
-      <Navbar />
+      {/* Sidebar */}
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
+      <MemberSidebar />
 
-        <div className="text-center mb-12">
+      {/* Main Content */}
 
-          <h1 className="text-4xl md:text-6xl font-bold text-yellow-400">
-            🤖 AI Stock Analysis
-          </h1>
+      <div className="flex-1 min-w-0">
 
-          <p className="text-gray-400 mt-4 text-lg">
-            Analyze any stock using AI-powered signals, live price, and technical indicators.
-          </p>
+        {/* Topbar */}
 
-        </div>
+        <MemberTopbar />
 
-        <StockSearch />
+        {/* Page Content */}
+
+        <main className="p-6 md:p-8">
+
+          {/* Header */}
+
+          <div className="mb-10">
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-400">
+              🤖 Premium AI Tool
+            </div>
+
+            <h1 className="mt-5 text-3xl md:text-5xl font-black text-white">
+              AI Stock Analysis
+            </h1>
+
+            <p className="mt-3 max-w-3xl text-gray-400 text-base md:text-lg">
+              Analyze stocks using live market data, interactive charts,
+              company information and AI-powered trading signals.
+            </p>
+
+          </div>
+
+          {/* Stock Search & Analysis */}
+
+          <StockSearch />
+
+        </main>
 
       </div>
-
-      <Footer />
 
     </div>
   );

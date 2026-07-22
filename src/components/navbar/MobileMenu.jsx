@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebase";
 
 import Button from "../ui/Button";
 
@@ -15,15 +18,20 @@ const links = [
 ];
 
 export default function MobileMenu({ open, setOpen }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <AnimatePresence>
-
       {open && (
-
         <>
-
-          {/* Overlay */}
-
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -32,8 +40,6 @@ export default function MobileMenu({ open, setOpen }) {
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
           />
 
-          {/* Drawer */}
-
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -41,9 +47,7 @@ export default function MobileMenu({ open, setOpen }) {
             transition={{ duration: 0.35 }}
             className="fixed right-0 top-0 z-50 flex h-screen w-[320px] flex-col border-l border-white/10 bg-[#050505]/95 p-6 backdrop-blur-3xl"
           >
-
             <div className="mb-10 flex items-center justify-between">
-
               <h2 className="text-xl font-black">
                 STOCK SCORCHER
               </h2>
@@ -51,13 +55,10 @@ export default function MobileMenu({ open, setOpen }) {
               <button onClick={() => setOpen(false)}>
                 <X />
               </button>
-
             </div>
 
             <div className="flex flex-col gap-2">
-
               {links.map((item) => (
-
                 <Link
                   key={item.name}
                   to={item.href}
@@ -66,40 +67,46 @@ export default function MobileMenu({ open, setOpen }) {
                 >
                   {item.name}
                 </Link>
-
               ))}
-
             </div>
 
             <div className="mt-auto space-y-3">
+              {user ? (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    window.location.href = "/dashboard";
+                  }}
+                >
+                  Dashboard
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    window.location.href = "/login";
+                  }}
+                >
+                  Login
+                </Button>
+              )}
 
               <Button
-                variant="secondary"
                 className="w-full"
                 onClick={() => {
-                  window.location.href = "/login";
+                  window.location.href = user
+                    ? "/member-dashboard"
+                    : "/membership";
                 }}
               >
-                Login
+                {user ? "Member Area" : "Become Premium"}
               </Button>
-
-              <Button
-                className="w-full"
-                onClick={() => {
-                  window.location.href = "/membership";
-                }}
-              >
-                Become Premium
-              </Button>
-
             </div>
-
           </motion.div>
-
         </>
-
       )}
-
     </AnimatePresence>
   );
 }
