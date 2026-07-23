@@ -1,4 +1,5 @@
 console.log("🔥 THIS IS MY SERVER FILE");
+
 const express = require("express");
 const cors = require("cors");
 const Razorpay = require("razorpay");
@@ -6,51 +7,29 @@ const crypto = require("crypto");
 const axios = require("axios");
 const { Resend } = require("resend");
 require("dotenv").config();
-const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function sendPaymentEmail(email, amount, paymentId) {
-  try {
-    await resend.emails.send({
-      from: "Stock Scorcher <onboarding@resend.dev>",
-      to: email,
-      subject: "Payment Successful - Stock Scorcher",
-      html: `
-        <h2>🎉 Payment Successful</h2>
-
-        <p>Thank you for purchasing Stock Scorcher.</p>
-
-        <p><strong>Amount:</strong> ₹${amount}</p>
-
-        <p><strong>Payment ID:</strong> ${paymentId}</p>
-
-        <p>Your course has been unlocked successfully.</p>
-
-        <a href="https://stock-scorcher-eight.vercel.app/dashboard">
-          Go To Dashboard
-        </a>
-      `,
-    });
-
-    console.log("✅ Email Sent");
-  } catch (err) {
-    console.error("Email Error:", err);
-  }
-}
 const app = express();
 
-app.use(cors({
-  origin: [
-    "https://stock-scorcher-eight.vercel.app",
-    "http://localhost:5177"
-  ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
-}));
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+app.use(
+  cors({
+    origin: [
+      "https://stock-scorcher-eight.vercel.app",
+      "http://localhost:5177",
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 
 app.options("*", cors());
+
 app.use(express.json());
 
-// ===================== Razorpay =====================
+// =====================
+// Razorpay
+// =====================
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -60,108 +39,118 @@ const razorpay = new Razorpay({
 console.log("KEY:", process.env.RAZORPAY_KEY_ID);
 console.log("SECRET:", process.env.RAZORPAY_KEY_SECRET);
 
-// ===================== HOME =====================
-
-app.get("/", (req, res) => {
-  res.send("Backend Running ✅");
-});
-
-app.use((req, res, next) => {
-  console.log(req.method, req.url);
-  next();
-});
-
-// ===================== YAHOO API =====================
-
-app.get("/api/yahoo", async (req, res) => {
-  try {
-    const { symbol } = req.query;
-
-    const response = await axios.get(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.NS`
-    );
-
-    const result = response.data.chart.result[0];
-    const meta = result.meta;
-
-    res.json({
-      current: meta.regularMarketPrice,
-      high: meta.regularMarketDayHigh,
-      low: meta.regularMarketDayLow,
-      open: meta.regularMarketOpen,
-      previousClose: meta.previousClose,
-      percent:
-        ((meta.regularMarketPrice - meta.previousClose) /
-          meta.previousClose) *
-        100,
-    });
-
-  } catch (err) {
-    console.log(err.message);
-
-    res.status(500).json({
-      error: "Yahoo API Error",
-    });
-  }
-});
-
 // =====================
-// HISTORY API
+// Email
 // =====================
 
-app.get("/api/history", async (req, res) => {
+async function sendPaymentEmail(
+  email,
+  amount,
+  paymentId,
+  coupon = "",
+  originalPrice = amount,
+  discount = 0
+) {
   try {
-    const { symbol, market } = req.query;
+    await resend.emails.send({
+      from: "Stock Scorcher <onboarding@resend.dev>",
+      to: email,
+      subject: "Payment Successful - Stock Scorcher",
 
-    let yahooSymbol = symbol;
+      html: `
+      <div style="font-family:Arial;padding:30px">
 
-    // Indian Stocks
-    if (market === "indian-stock") {
-      yahooSymbol = `${symbol}.NS`;
-    }
+      <h2>🎉 Payment Successful</h2>
 
-    // Forex
-    else if (market === "forex") {
-      yahooSymbol = `${symbol}=X`;
-    }
+      <p>Thank you for purchasing Stock Scorcher.</p>
 
-    // Crypto (Yahoo format)
-    else if (market === "crypto") {
-      yahooSymbol = `${symbol}-USD`;
-    }
+      <table
+      cellpadding="10"
+      style="border-collapse:collapse"
+      border="1">
 
-    const response = await axios.get(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=6mo&interval=1d`
-    );
+      <tr>
+      <td><b>Original Price</b></td>
+      <td>₹${originalPrice}</td>
+      </tr>
 
-    const result = response.data.chart.result[0];
+      <tr>
+      <td><b>Coupon</b></td>
+      <td>${coupon || "No Coupon"}</td>
+      </tr>
 
-    const closes =
-      result.indicators.quote[0].close.filter(
-        (x) => x !== null
-      );
+      <tr>
+      <td><b>Discount</b></td>
+      <td>${discount}%</td>
+      </tr>
 
-    res.json(closes);
+      <tr>
+      <td><b>Paid Amount</b></td>
+      <td>₹${amount}</td>
+      </tr>
 
-  } catch (err) {
-    console.log(err.message);
+      <tr>
+      <td><b>Payment ID</b></td>
+      <td>${paymentId}</td>
+      </tr>
 
-    res.status(500).json({
-      error: "History API Error",
+      </table>
+
+      <br>
+
+      <a
+      href="https://stock-scorcher-eight.vercel.app/dashboard"
+      style="
+      background:#FFD700;
+      color:black;
+      padding:12px 20px;
+      text-decoration:none;
+      border-radius:8px;
+      font-weight:bold;
+      ">
+
+      Go To Dashboard
+
+      </a>
+
+      </div>
+      `,
     });
-  }
-});
 
-// ===================== CREATE ORDER =====================
+    console.log("✅ Email Sent");
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+// =====================
+// CREATE ORDER
+// =====================
 
 app.post("/create-order", async (req, res) => {
   console.log("🔥 CREATE ORDER HIT");
 
   try {
-    const { amount } = req.body;
+    const { amount, coupon } = req.body;
 
+    let finalAmount = Number(amount);
+
+    // =====================
+    // Coupon Validation
+    // =====================
+
+    if (coupon) {
+  const code = coupon.trim().toUpperCase();
+
+  if (code !== "AL35") {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Coupon",
+    });
+  }
+}
     const options = {
-      amount: amount * 100,
+      amount: finalAmount * 100,
       currency: "INR",
       receipt: "receipt_" + Date.now(),
     };
@@ -170,22 +159,33 @@ app.post("/create-order", async (req, res) => {
 
     console.log("✅ Order Created:", order.id);
 
-    res.json(order);
+    res.json({
+      ...order,
+      finalAmount,
+      coupon: coupon || null,
+    });
+
   } catch (error) {
+
     console.error("CREATE ORDER ERROR:", error);
 
     res.status(500).json({
       success: false,
       error: error.message,
     });
+
   }
+
 });
 
-// ===================== VERIFY PAYMENT =====================
+// =====================
+// VERIFY PAYMENT
+// =====================
 
 console.log("✅ VERIFY ROUTE LOADED");
 
 app.post("/verify-payment", async (req, res) => {
+
   console.log("🔥 VERIFY PAYMENT API HIT");
   console.log(req.body);
 
@@ -195,41 +195,62 @@ app.post("/verify-payment", async (req, res) => {
   razorpay_signature,
   email,
   amount,
+  coupon,
+  originalPrice,
+  discount,
 } = req.body;
 
-  const body = razorpay_order_id + "|" + razorpay_payment_id;
+  const body =
+    razorpay_order_id + "|" + razorpay_payment_id;
 
   const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .createHmac(
+      "sha256",
+      process.env.RAZORPAY_KEY_SECRET
+    )
     .update(body)
     .digest("hex");
 
- if (expectedSignature === razorpay_signature) {
-  console.log("✅ PAYMENT VERIFIED");
+  if (expectedSignature === razorpay_signature) {
 
-  if (email) {
-    await sendPaymentEmail(
-      email,
-      amount,
-      razorpay_payment_id
-    );
-  }
+    console.log("✅ PAYMENT VERIFIED");
 
-  return res.json({
-    success: true,
-    message: "Payment Verified Successfully",
-  });
-} else {
+    if (email) {
+
+      await sendPaymentEmail(
+  email,
+  amount,
+  razorpay_payment_id,
+  coupon,
+  originalPrice,
+  discount
+);
+
+    }
+
+    return res.json({
+      success: true,
+      couponUsed: coupon || null,
+      paidAmount: amount,
+      message: "Payment Verified Successfully",
+    });
+
+  } else {
+
     console.log("❌ INVALID SIGNATURE");
 
     return res.status(400).json({
       success: false,
       message: "Invalid Signature",
     });
+
   }
+
 });
 
-// ===================== START SERVER =====================
+// =====================
+// START SERVER
+// =====================
 
 const PORT = process.env.PORT || 5000;
 

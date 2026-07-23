@@ -1,30 +1,41 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
-import useMarketSearch from "../hooks/useMarketSearch";
+
 import TradingViewChart from "./TradingViewChart";
-import getTradingViewSymbol from "../utils/getTradingViewSymbol";
+
+import useMarketSearch from "../hooks/useMarketSearch";
 import marketDetector from "../utils/marketDetector";
+import getTradingViewSymbol from "../utils/getTradingViewSymbol";
+
 import { auth, db } from "../firebase";
+
 import {
   doc,
   getDoc,
   setDoc,
 } from "firebase/firestore";
+
 import { addToWatchlist } from "../services/watchlist";
-import { generateAIAnalysis } from "../ai/analysis";
 import { getHistoricalPrices } from "../services/historyService";
+import { generateAIAnalysis } from "../ai/analysis";
 
 export default function StockSearch() {
+  // =========================
+  // SEARCH STATE
+  // =========================
+
   const [symbol, setSymbol] = useState("");
-const {
-  loading,
-  stock,
-  company,
-  searchMarket,
-} = useMarketSearch();
+  const [searchedSymbol, setSearchedSymbol] = useState("");
+
+  const {
+    loading,
+    stock,
+    company,
+    searchMarket,
+  } = useMarketSearch();
 
   // =========================
-  // PAPER TRADING
+  // PAPER TRADING STATE
   // =========================
 
   const [quantity, setQuantity] = useState(1);
@@ -35,71 +46,86 @@ const {
 
   const [saving, setSaving] = useState(false);
 
-  // Current market
-  // Future ready for:
-  // stock
-  // crypto
-  // forex
+  // =========================
+  // AI STATE
+  // =========================
 
-  const market = marketDetector(symbol);
   const [aiResult, setAiResult] = useState(null);
 
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const [aiError, setAiError] = useState("");
+
   // =========================
-  // FIREBASE USER DATA
+  // MARKET DETECTOR
+  // =========================
+
+  const market = marketDetector(
+    searchedSymbol || symbol
+  );
+
+  // =========================
+  // LOAD PAPER TRADING DATA
   // =========================
 
   useEffect(() => {
     loadPaperTradingData();
   }, []);
 
- useEffect(() => {
-  async function loadAI() {
-    if (!stock || !symbol) return;
+  // =========================
+  // LOAD AI ANALYSIS
+  // ONLY AFTER REAL STOCK DATA
+  // =========================
 
-    try {
-      const prices = await getHistoricalPrices(symbol);
-
-      const result = generateAIAnalysis(prices);
-
-      setAiResult(result);
-
-    } catch (err) {
-      console.log(err);
+  useEffect(() => {
+    if (!stock || !searchedSymbol) {
+      setAiResult(null);
+      return;
     }
-  }
 
-  loadAI();
+    loadAIAnalysis(searchedSymbol);
+  }, [stock, searchedSymbol]);
 
-}, [stock, symbol]);
+  // =========================
+  // LOAD PAPER TRADING
+  // =========================
 
   const loadPaperTradingData = async () => {
     try {
       const user = auth.currentUser;
 
       if (!user) {
-        console.log("User not logged in");
         return;
       }
 
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(
+        db,
+        "users",
+        user.uid
+      );
 
-      const userSnap = await getDoc(userRef);
+      const userSnap =
+        await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const data = userSnap.data();
+      if (!userSnap.exists()) {
+        return;
+      }
 
-        if (data.paperTrading) {
-          setBalance(
-            data.paperTrading.balance ?? 100000
-          );
+      const data = userSnap.data();
 
-          setPortfolio(
-            data.paperTrading.portfolio ?? {}
-          );
-        }
+      if (data.paperTrading) {
+        setBalance(
+          data.paperTrading.balance ??
+            100000
+        );
+
+        setPortfolio(
+          data.paperTrading.portfolio ??
+            {}
+        );
       }
     } catch (error) {
-      console.log(
+      console.error(
         "Failed to load paper trading data:",
         error
       );
@@ -107,7 +133,52 @@ const {
   };
 
   // =========================
-  // SAVE FIREBASE DATA
+  // LOAD AI ANALYSIS
+  // =========================
+
+  const loadAIAnalysis = async (
+    searchSymbol
+  ) => {
+    try {
+      setAiLoading(true);
+      setAiError("");
+
+      const prices =
+        await getHistoricalPrices(
+          searchSymbol
+        );
+
+      if (
+        !prices ||
+        prices.length < 20
+      ) {
+        throw new Error(
+          "Not enough historical market data available."
+        );
+      }
+
+      const result =
+        generateAIAnalysis(prices);
+
+      setAiResult(result);
+    } catch (error) {
+      console.error(
+        "AI Analysis Error:",
+        error
+      );
+
+      setAiResult(null);
+
+      setAiError(
+        "AI analysis is temporarily unavailable."
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // =========================
+  // SAVE PAPER TRADING DATA
   // =========================
 
   const savePaperTradingData = async (
@@ -115,10 +186,14 @@ const {
     newPortfolio
   ) => {
     try {
-      const user = auth.currentUser;
+      const user =
+        auth.currentUser;
 
       if (!user) {
-        alert("Please login first");
+        alert(
+          "Please login first."
+        );
+
         return false;
       }
 
@@ -133,8 +208,12 @@ const {
         {
           paperTrading: {
             balance: newBalance,
-            portfolio: newPortfolio,
-            updatedAt: new Date().toISOString(),
+
+            portfolio:
+              newPortfolio,
+
+            updatedAt:
+              new Date().toISOString(),
           },
         },
         {
@@ -143,15 +222,14 @@ const {
       );
 
       return true;
-
     } catch (error) {
-      console.log(
+      console.error(
         "Firebase save error:",
         error
       );
 
       alert(
-        "Failed to save trading data"
+        "Failed to save trading data."
       );
 
       return false;
@@ -159,75 +237,146 @@ const {
   };
 
   // =========================
-  // SEARCH STOCK
+  // SEARCH MARKET
   // =========================
 
   const handleSearch = async () => {
-  if (!symbol.trim()) {
-    alert("Please enter a symbol");
-    return;
-  }
+    const cleanSymbol =
+      symbol.trim().toUpperCase();
 
-  await searchMarket(symbol.trim().toUpperCase());
-  try {
-  const current = stock?.current || 100;
+    if (!cleanSymbol) {
+      alert(
+        "Please enter a symbol."
+      );
 
-  const prices = [];
+      return;
+    }
 
-  for (let i = 60; i >= 0; i--) {
-    prices.push(current - Math.random() * 20 + Math.random() * 20);
-  }
+    try {
+      setAiResult(null);
+      setAiError("");
 
-  const result = generateAIAnalysis(prices);
+      setSearchedSymbol(
+        cleanSymbol
+      );
 
-  setAiResult(result);
+      await searchMarket(
+        cleanSymbol
+      );
+    } catch (error) {
+      console.error(
+        "Market Search Error:",
+        error
+      );
 
-} catch (err) {
-  console.log(err);
-}
-};
+      alert(
+        "Unable to fetch market data."
+      );
+    }
+  };
 
+  // =========================
+  // ADD TO WATCHLIST
+  // =========================
+
+  const handleAddWatchlist =
+    async () => {
+      if (!searchedSymbol) {
+        return;
+      }
+
+      try {
+        await addToWatchlist({
+          symbol:
+            searchedSymbol,
+
+          market:
+            market,
+
+          name:
+            company?.name ||
+            searchedSymbol,
+        });
+
+        alert(
+          "⭐ Added to Watchlist"
+        );
+      } catch (error) {
+        console.error(
+          "Watchlist Error:",
+          error
+        );
+
+        alert(
+          error.message ||
+            "Failed to add to watchlist."
+        );
+      }
+    };
 
   // =========================
   // BUY STOCK
   // =========================
 
   const handleBuy = async () => {
-    if (!stock) return;
-
-    const user = auth.currentUser;
-
-    if (!user) {
-      alert(
-        "Please login to use Paper Trading"
-      );
+    if (!stock) {
       return;
     }
 
-    const qty = Number(quantity);
+    const user =
+      auth.currentUser;
 
-    if (!qty || qty <= 0) {
+    if (!user) {
       alert(
-        "Please enter a valid quantity"
+        "Please login to use Paper Trading."
       );
+
+      return;
+    }
+
+    const qty =
+      Number(quantity);
+
+    if (
+      !Number.isFinite(qty) ||
+      qty <= 0
+    ) {
+      alert(
+        "Please enter a valid quantity."
+      );
+
       return;
     }
 
     const stockSymbol =
-      symbol.trim().toUpperCase();
+      searchedSymbol;
 
     const currentPrice =
       Number(stock.current);
 
+    if (
+      !Number.isFinite(
+        currentPrice
+      ) ||
+      currentPrice <= 0
+    ) {
+      alert(
+        "Invalid market price."
+      );
+
+      return;
+    }
+
     const totalCost =
       currentPrice * qty;
 
-    // Check Balance
-
-    if (totalCost > balance) {
+    if (
+      totalCost > balance
+    ) {
       alert(
-        "❌ Insufficient virtual balance"
+        "❌ Insufficient virtual balance."
       );
+
       return;
     }
 
@@ -235,58 +384,68 @@ const {
 
     try {
       const existing =
-        portfolio[stockSymbol];
+        portfolio[
+          stockSymbol
+        ];
 
       const existingQuantity =
-        existing?.quantity || 0;
+        Number(
+          existing?.quantity || 0
+        );
 
       const existingBuyPrice =
-        existing?.buyPrice || 0;
-
-      // Average Buy Price
+        Number(
+          existing?.buyPrice || 0
+        );
 
       const totalExistingValue =
         existingQuantity *
         existingBuyPrice;
 
       const totalNewValue =
-        qty * currentPrice;
+        qty *
+        currentPrice;
 
       const totalQuantity =
-        existingQuantity + qty;
+        existingQuantity +
+        qty;
 
       const averageBuyPrice =
         totalQuantity > 0
           ? (
-              (totalExistingValue +
-                totalNewValue) /
-              totalQuantity
-            )
+              totalExistingValue +
+              totalNewValue
+            ) /
+            totalQuantity
           : currentPrice;
 
       const newBalance =
-        balance - totalCost;
+        balance -
+        totalCost;
 
       const newPortfolio = {
         ...portfolio,
 
         [stockSymbol]: {
-          symbol: stockSymbol,
+          symbol:
+            stockSymbol,
 
-          market,
+          market:
+            market,
 
-          quantity: totalQuantity,
+          quantity:
+            totalQuantity,
 
-          buyPrice: averageBuyPrice,
+          buyPrice:
+            averageBuyPrice,
 
-          currentPrice: currentPrice,
+          currentPrice:
+            currentPrice,
 
           updatedAt:
             new Date().toISOString(),
         },
       };
-
-      // Save Firebase
 
       const saved =
         await savePaperTradingData(
@@ -298,25 +457,26 @@ const {
         return;
       }
 
-      // Update UI
-
-      setBalance(newBalance);
+      setBalance(
+        newBalance
+      );
 
       setPortfolio(
         newPortfolio
       );
 
       alert(
-        `✅ BUY Successful!\n\n${qty} ${stockSymbol} shares bought.`
+        `✅ BUY Successful!\n\n${qty} ${stockSymbol} bought.`
       );
-
     } catch (error) {
-      console.log(error);
+      console.error(
+        "BUY Error:",
+        error
+      );
 
       alert(
-        "BUY order failed"
+        "BUY order failed."
       );
-
     } finally {
       setSaving(false);
     }
@@ -327,50 +487,65 @@ const {
   // =========================
 
   const handleSell = async () => {
-    if (!stock) return;
-
-    const user = auth.currentUser;
-
-    if (!user) {
-      alert(
-        "Please login to use Paper Trading"
-      );
+    if (!stock) {
       return;
     }
 
-    const qty = Number(quantity);
+    const user =
+      auth.currentUser;
 
-    if (!qty || qty <= 0) {
+    if (!user) {
       alert(
-        "Please enter a valid quantity"
+        "Please login to use Paper Trading."
       );
+
+      return;
+    }
+
+    const qty =
+      Number(quantity);
+
+    if (
+      !Number.isFinite(qty) ||
+      qty <= 0
+    ) {
+      alert(
+        "Please enter a valid quantity."
+      );
+
       return;
     }
 
     const stockSymbol =
-      symbol.trim().toUpperCase();
+      searchedSymbol;
 
     const existing =
-      portfolio[stockSymbol];
+      portfolio[
+        stockSymbol
+      ];
 
     const ownedQuantity =
-      existing?.quantity || 0;
-
-    // No Stock
-
-    if (ownedQuantity <= 0) {
-      alert(
-        `❌ You don't own any ${stockSymbol} shares.`
+      Number(
+        existing?.quantity || 0
       );
+
+    if (
+      ownedQuantity <= 0
+    ) {
+      alert(
+        `❌ You don't own any ${stockSymbol}.`
+      );
+
       return;
     }
 
-    // Selling More Than Owned
-
-    if (qty > ownedQuantity) {
+    if (
+      qty > ownedQuantity
+    ) {
       alert(
-        `❌ You only own ${ownedQuantity} shares.`
+        `❌ You only own ${ownedQuantity} units.`
       );
+
       return;
     }
 
@@ -387,16 +562,16 @@ const {
         ownedQuantity - qty;
 
       const newBalance =
-        balance + totalValue;
+        balance +
+        totalValue;
 
       const newPortfolio = {
         ...portfolio,
       };
 
-      // Remove Stock
-      // If all shares sold
-
-      if (remainingQuantity === 0) {
+      if (
+        remainingQuantity === 0
+      ) {
         delete newPortfolio[
           stockSymbol
         ];
@@ -417,8 +592,6 @@ const {
         };
       }
 
-      // Save Firebase
-
       const saved =
         await savePaperTradingData(
           newBalance,
@@ -429,61 +602,95 @@ const {
         return;
       }
 
-      // Update UI
-
-      setBalance(newBalance);
+      setBalance(
+        newBalance
+      );
 
       setPortfolio(
         newPortfolio
       );
 
       alert(
-        `✅ SELL Successful!\n\n${qty} ${stockSymbol} shares sold.`
+        `✅ SELL Successful!\n\n${qty} ${stockSymbol} sold.`
       );
-
     } catch (error) {
-      console.log(error);
+      console.error(
+        "SELL Error:",
+        error
+      );
 
       alert(
-        "SELL order failed"
+        "SELL order failed."
       );
-
     } finally {
       setSaving(false);
     }
   };
 
   // =========================
-  // CURRENT STOCK HOLDING
+  // CURRENT HOLDING
   // =========================
 
   const ownedQuantity =
     portfolio[
-      symbol.trim().toUpperCase()
+      searchedSymbol
     ]?.quantity || 0;
+
+  // =========================
+  // TRADINGVIEW SYMBOL
+  // =========================
+
+  const tradingViewSymbol =
+    searchedSymbol
+      ? getTradingViewSymbol(
+          searchedSymbol
+        )
+      : "";
+
+  // =========================
+  // SAFE NUMBER FORMAT
+  // =========================
+
+  const formatPrice = (
+    value
+  ) => {
+    if (
+      value === null ||
+      value === undefined ||
+      Number.isNaN(
+        Number(value)
+      )
+    ) {
+      return "N/A";
+    }
+
+    return Number(value).toFixed(
+      2
+    );
+  };
 
   // =========================
   // RETURN
   // =========================
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-6">
+    <div className="w-full max-w-[1600px] mx-auto">
 
-      {/* ========================= */}
-      {/* SEARCH */}
-      {/* ========================= */}
+      {/* =========================
+          SEARCH
+      ========================= */}
 
-      <div className="bg-zinc-900 border border-yellow-500/20 rounded-3xl p-6 md:p-10 shadow-2xl">
+      <div className="rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 shadow-2xl md:p-10">
 
-        <h2 className="text-3xl font-bold text-yellow-400 text-center">
-          AI Stock Search
+        <h2 className="text-center text-3xl font-bold text-yellow-400">
+          AI Market Search
         </h2>
 
-        <p className="text-center text-gray-400 mt-3">
-          Search stocks and practice trading with virtual money.
+        <p className="mt-3 text-center text-gray-400">
+          Search Stocks, Crypto and Forex markets.
         </p>
 
-        <div className="flex flex-col md:flex-row gap-4 mt-8">
+        <div className="mt-8 flex flex-col gap-4 md:flex-row">
 
           <input
             value={symbol}
@@ -493,26 +700,28 @@ const {
               )
             }
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (
+                e.key === "Enter"
+              ) {
                 handleSearch();
               }
             }}
-            placeholder="Example: AAPL"
-            className="flex-1 bg-black border border-zinc-700 focus:border-yellow-400 rounded-xl px-5 py-4 outline-none text-lg"
+            placeholder="Example: AAPL, BTC, EURUSD"
+            className="flex-1 rounded-xl border border-zinc-700 bg-black px-5 py-4 text-lg outline-none transition focus:border-yellow-400"
           />
 
           <button
-            onClick={handleSearch}
+            onClick={
+              handleSearch
+            }
             disabled={loading}
-            className="bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-black font-bold px-8 rounded-xl flex items-center justify-center gap-2"
+            className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-8 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:opacity-50"
           >
-
             <Search size={20} />
 
             {loading
               ? "Searching..."
               : "Search"}
-
           </button>
 
         </div>
@@ -525,7 +734,7 @@ const {
             <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent" />
 
             <p className="mt-4 text-gray-400">
-              Fetching Live Market Data...
+              Fetching live market data...
             </p>
 
           </div>
@@ -533,123 +742,144 @@ const {
 
         {/* Stock Data */}
 
-        {!loading && stock && (
+        {!loading &&
+          stock && (
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
+            <div className="mt-10 grid grid-cols-2 gap-5 lg:grid-cols-3">
 
-            <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
+              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
 
-              <p className="text-gray-400 text-sm">
-                Current Price
-              </p>
+                <p className="text-sm text-gray-400">
+                  Current Price
+                </p>
 
-              <h2 className="text-3xl font-bold text-green-400 mt-2">
-                ${stock.current?.toFixed(2)}
-              </h2>
+                <h2 className="mt-2 text-3xl font-bold text-green-400">
+                  {formatPrice(
+                    stock.current
+                  )}
+                </h2>
+
+              </div>
+
+              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                <p className="text-sm text-gray-400">
+                  Day High
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold">
+                  {formatPrice(
+                    stock.high
+                  )}
+                </h2>
+
+              </div>
+
+              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                <p className="text-sm text-gray-400">
+                  Day Low
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold">
+                  {formatPrice(
+                    stock.low
+                  )}
+                </h2>
+
+              </div>
+
+              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                <p className="text-sm text-gray-400">
+                  Previous Close
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold">
+                  {formatPrice(
+                    stock.previousClose
+                  )}
+                </h2>
+
+              </div>
+
+              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                <p className="text-sm text-gray-400">
+                  Open
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold">
+                  {formatPrice(
+                    stock.open
+                  )}
+                </h2>
+
+              </div>
+
+              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                <p className="text-sm text-gray-400">
+                  % Change
+                </p>
+
+                <h2
+                  className={`mt-2 text-3xl font-bold ${
+                    Number(
+                      stock.percent
+                    ) >= 0
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}
+                >
+                  {formatPrice(
+                    stock.percent
+                  )}
+                  %
+                </h2>
+
+              </div>
 
             </div>
 
-            <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
-
-              <p className="text-gray-400 text-sm">
-                Day High
-              </p>
-
-              <h2 className="text-3xl font-bold mt-2">
-                ${stock.high?.toFixed(2)}
-              </h2>
-
-            </div>
-
-            <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
-
-              <p className="text-gray-400 text-sm">
-                Day Low
-              </p>
-
-              <h2 className="text-3xl font-bold mt-2">
-                ${stock.low?.toFixed(2)}
-              </h2>
-
-            </div>
-
-            <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
-
-              <p className="text-gray-400 text-sm">
-                Previous Close
-              </p>
-
-              <h2 className="text-3xl font-bold mt-2">
-                ${stock.previousClose?.toFixed(2)}
-              </h2>
-
-            </div>
-
-            <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
-
-              <p className="text-gray-400 text-sm">
-                Open
-              </p>
-
-              <h2 className="text-3xl font-bold mt-2">
-                ${stock.open?.toFixed(2)}
-              </h2>
-
-            </div>
-
-            <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
-
-              <p className="text-gray-400 text-sm">
-                % Change
-              </p>
-
-              <h2
-                className={`text-3xl font-bold mt-2 ${
-                  stock.percent >= 0
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {stock.percent?.toFixed(2)}%
-              </h2>
-
-            </div>
-
-          </div>
-
-        )}
+          )}
 
       </div>
 
-      {/* ========================= */}
-      {/* COMPANY INFO */}
-      {/* ========================= */}
+      {/* =========================
+          COMPANY INFO
+      ========================= */}
 
       {company && (
 
-        <div className="bg-zinc-900 border border-yellow-500/20 rounded-3xl mt-10 p-6 md:p-8">
+        <div className="mt-10 rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 md:p-8">
 
-          <div className="flex flex-col md:flex-row items-center gap-6">
+          <div className="flex flex-col items-center gap-6 md:flex-row">
 
             {company.logo && (
               <img
                 src={company.logo}
-                alt={company.name}
-                className="w-20 h-20 rounded-full bg-white p-2"
+                alt={
+                  company.name ||
+                  searchedSymbol
+                }
+                className="h-20 w-20 rounded-full bg-white p-2 object-contain"
               />
             )}
 
             <div className="text-center md:text-left">
 
               <h2 className="text-3xl font-bold text-yellow-400">
-                {company.name}
+                {company.name ||
+                  searchedSymbol}
               </h2>
 
-              <p className="text-gray-400 mt-2">
-                {company.ticker}
+              <p className="mt-2 text-gray-400">
+                {company.ticker ||
+                  searchedSymbol}
               </p>
 
-              <div className="grid grid-cols-2 gap-4 mt-5 text-sm">
+              <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
 
                 <div>
                   <span className="text-gray-500">
@@ -657,7 +887,8 @@ const {
                   </span>
 
                   <p className="font-semibold">
-                    {company.exchange || "N/A"}
+                    {company.exchange ||
+                      "N/A"}
                   </p>
                 </div>
 
@@ -667,7 +898,8 @@ const {
                   </span>
 
                   <p className="font-semibold">
-                    {company.country || "N/A"}
+                    {company.country ||
+                      "N/A"}
                   </p>
                 </div>
 
@@ -677,17 +909,19 @@ const {
                   </span>
 
                   <p className="font-semibold">
-                    {company.currency || "N/A"}
+                    {company.currency ||
+                      "N/A"}
                   </p>
                 </div>
 
                 <div>
                   <span className="text-gray-500">
-                    IPO
+                    Market
                   </span>
 
-                  <p className="font-semibold">
-                    {company.ipo || "N/A"}
+                  <p className="font-semibold text-yellow-400">
+                    {market?.toUpperCase() ||
+                      "N/A"}
                   </p>
                 </div>
 
@@ -701,55 +935,61 @@ const {
 
       )}
 
-      {stock && (
-  <div className="mt-6 flex justify-center">
-    <button
-      onClick={async () => {
-        try {
-          await addToWatchlist({
-            symbol: symbol.toUpperCase(),
-            market: marketDetector(symbol),
-            name: company?.name || symbol,
-          });
-
-          alert("⭐ Added to Watchlist");
-        } catch (err) {
-          alert(err.message);
-        }
-      }}
-      className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-6 py-3 rounded-xl"
-    >
-      ⭐ Add to Watchlist
-    </button>
-  </div>
-)}
-
-      {/* ========================= */}
-      {/* PAPER TRADING */}
-      {/* ========================= */}
+      {/* =========================
+          WATCHLIST
+      ========================= */}
 
       {stock && (
 
-        <div className="bg-zinc-900 border border-yellow-500/20 rounded-3xl mt-10 p-6 md:p-8">
+        <div className="mt-6 flex justify-center">
+
+          <button
+            onClick={
+              handleAddWatchlist
+            }
+            className="rounded-xl bg-yellow-400 px-6 py-3 font-bold text-black transition hover:bg-yellow-300"
+          >
+            ⭐ Add to Watchlist
+          </button>
+
+        </div>
+
+      )}
+
+      {/* =========================
+          PAPER TRADING
+      ========================= */}
+
+      {stock && (
+
+        <div className="mt-10 rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 md:p-8">
 
           <h2 className="text-3xl font-bold text-yellow-400">
             📄 Paper Trading
           </h2>
 
-          <p className="text-gray-400 mt-2">
+          <p className="mt-2 text-gray-400">
             Practice trading with virtual money.
           </p>
 
           {/* Balance */}
 
-          <div className="mt-6 bg-black border border-green-500/20 rounded-2xl p-5">
+          <div className="mt-6 rounded-2xl border border-green-500/20 bg-black p-5">
 
             <p className="text-gray-400">
               Virtual Balance
             </p>
 
-            <h2 className="text-3xl font-bold text-green-400 mt-2">
-              ${balance.toFixed(2)}
+            <h2 className="mt-2 text-3xl font-bold text-green-400">
+              ₹
+              {Number(
+                balance
+              ).toLocaleString(
+                "en-IN",
+                {
+                  maximumFractionDigits: 2,
+                }
+              )}
             </h2>
 
           </div>
@@ -759,16 +999,17 @@ const {
           <div className="mt-6">
 
             <p className="text-gray-400">
-              Trading Stock
+              Trading Asset
             </p>
 
-            <h3 className="text-2xl font-bold text-white mt-1">
-              {symbol.toUpperCase()}
+            <h3 className="mt-1 text-2xl font-bold">
+              {searchedSymbol}
             </h3>
 
-            <p className="text-sm text-yellow-400 mt-1">
-  Market: {market.toUpperCase()}
-</p>
+            <p className="mt-1 text-sm text-yellow-400">
+              Market:{" "}
+              {market?.toUpperCase()}
+            </p>
 
           </div>
 
@@ -780,8 +1021,8 @@ const {
               You Own
             </p>
 
-            <h3 className="text-xl font-bold text-yellow-400 mt-1">
-              {ownedQuantity} Shares
+            <h3 className="mt-1 text-xl font-bold text-yellow-400">
+              {ownedQuantity} Units
             </h3>
 
           </div>
@@ -803,7 +1044,7 @@ const {
                   e.target.value
                 )
               }
-              className="w-full mt-2 bg-black border border-zinc-700 focus:border-yellow-400 rounded-xl px-5 py-4 outline-none text-white"
+              className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-5 py-4 text-white outline-none focus:border-yellow-400"
             />
 
           </div>
@@ -816,11 +1057,16 @@ const {
               Order Value
             </p>
 
-            <h3 className="text-2xl font-bold text-white mt-1">
-              $
+            <h3 className="mt-1 text-2xl font-bold">
+              ₹
               {(
-                (stock.current || 0) *
-                Number(quantity || 0)
+                Number(
+                  stock.current ||
+                    0
+                ) *
+                Number(
+                  quantity || 0
+                )
               ).toFixed(2)}
             </h3>
 
@@ -828,12 +1074,14 @@ const {
 
           {/* Buttons */}
 
-          <div className="grid grid-cols-2 gap-4 mt-8">
+          <div className="mt-8 grid grid-cols-2 gap-4">
 
             <button
-              onClick={handleBuy}
+              onClick={
+                handleBuy
+              }
               disabled={saving}
-              className="bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-bold py-4 rounded-xl transition"
+              className="rounded-xl bg-green-500 py-4 font-bold text-black transition hover:bg-green-400 disabled:opacity-50"
             >
               {saving
                 ? "Processing..."
@@ -841,12 +1089,14 @@ const {
             </button>
 
             <button
-              onClick={handleSell}
+              onClick={
+                handleSell
+              }
               disabled={
                 saving ||
                 ownedQuantity <= 0
               }
-              className="bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-gray-500 text-white font-bold py-4 rounded-xl transition"
+              className="rounded-xl bg-red-500 py-4 font-bold text-white transition hover:bg-red-400 disabled:bg-zinc-700 disabled:text-gray-500"
             >
               {saving
                 ? "Processing..."
@@ -859,115 +1109,263 @@ const {
 
       )}
 
-      {/* ========================= */}
-      {/* AI ANALYSIS */}
-      {/* ========================= */}
+      {/* =========================
+          AI ANALYSIS
+      ========================= */}
 
       {stock && (
 
-        <div className="bg-zinc-900 border border-yellow-500/20 rounded-3xl mt-10 p-8">
+        <div className="mt-10 rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 md:p-8">
 
-          <h2 className="text-3xl font-bold text-yellow-400 mb-8">
-            🤖 AI Recommendation
+          <h2 className="mb-8 text-3xl font-bold text-yellow-400">
+            🤖 AI Market Analysis
           </h2>
 
-          <TradingViewChart
-  symbol={symbol}
-/>
+          {/* TradingView */}
 
-          <div className="grid md:grid-cols-2 gap-8 mt-8">
+          {tradingViewSymbol && (
+            <TradingViewChart
+              symbol={
+                tradingViewSymbol
+              }
+            />
+          )}
 
-            <div>
+          {/* AI Loading */}
 
-              <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
+          {aiLoading && (
 
-                <h3
-                  className={`text-4xl font-bold ${
-                    stock.percent > 2
-                      ? "text-green-400"
-                      : stock.percent < -2
-                      ? "text-red-400"
-                      : "text-yellow-400"
-                  }`}
-                >
-                  {aiResult?.signal || "Loading..."}
-                </h3>
+            <div className="mt-8 rounded-2xl border border-yellow-500/20 bg-black p-8 text-center">
 
-                <p className="text-gray-300 mt-4">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent" />
 
-                  Confidence:
+              <p className="mt-4 text-gray-400">
+                AI is analyzing market data...
+              </p>
 
-                  <span className="text-green-400 font-bold">
-                    {" "}
-                    {aiResult?.confidence || 0}%
-                    %
-                  </span>
+            </div>
 
-                </p>
+          )}
 
-                <p className="text-gray-300 mt-2">
+          {/* AI Error */}
 
-                  Risk:
+          {!aiLoading &&
+            aiError && (
 
-                  <span className="text-yellow-400 font-bold">
-                    {" "}
-                    {aiResult?.risk || "-"}
-                  </span>
+              <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
 
+                <p className="font-semibold text-red-400">
+                  {aiError}
                 </p>
 
               </div>
 
-            </div>
+            )}
 
-            <div>
+          {/* AI RESULT */}
 
-              <div className="bg-black border border-yellow-500/20 rounded-2xl p-6">
+          {!aiLoading &&
+            !aiError &&
+            aiResult && (
 
-                <h3 className="text-xl font-bold text-yellow-400 mb-4">
-                  AI Reasons
-                </h3>
+              <div className="mt-8 grid gap-8 md:grid-cols-2">
 
-                <ul className="space-y-3 text-gray-300">
-  {aiResult?.reasons?.map((reason, index) => (
-    <li key={index}>
-      ✅ {reason}
-    </li>
-  ))}
-</ul>
+                {/* SIGNAL */}
+
+                <div>
+
+                  <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                    <h3
+                      className={`text-4xl font-bold ${
+                        aiResult.signal ===
+                        "BUY"
+                          ? "text-green-400"
+                          : aiResult.signal ===
+                            "SELL"
+                          ? "text-red-400"
+                          : "text-yellow-400"
+                      }`}
+                    >
+                      {aiResult.signal ||
+                        "HOLD"}
+                    </h3>
+
+                    <p className="mt-4 text-gray-300">
+
+                      Confidence:
+
+                      <span className="font-bold text-green-400">
+                        {" "}
+                        {aiResult?.confidence || 0}%
+                      </span>
+
+                    </p>
+
+                    <p className="mt-2 text-gray-300">
+
+                      Risk:
+
+                      <span className="font-bold text-yellow-400">
+                        {" "}
+                        {aiResult.risk ||
+                          "-"}
+                      </span>
+
+                    </p>
+
+                  </div>
+
+                  {/* LEVELS */}
+
+                  <div className="mt-6 rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                    <h3 className="mb-4 text-xl font-bold text-yellow-400">
+                      AI Levels
+                    </h3>
+
+                    <div className="space-y-3 text-gray-300">
+
+                      <p>
+                        📍 Support:{" "}
+                        <span className="text-green-400">
+                          {aiResult.support ??
+                            "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        📍 Resistance:{" "}
+                        <span className="text-red-400">
+                          {aiResult.resistance ??
+                            "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        🎯 Target:{" "}
+                        <span className="text-yellow-400">
+                          {aiResult.target ??
+                            "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        🛑 Stop Loss:{" "}
+                        <span className="text-orange-400">
+                          {aiResult.stopLoss ??
+                            "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        📊 RSI:{" "}
+                        <span className="text-cyan-400">
+                          {aiResult.rsi !==
+                            undefined
+                            ? Number(
+                                aiResult.rsi
+                              ).toFixed(
+                                2
+                              )
+                            : "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        📈 EMA20:{" "}
+                        <span className="text-blue-400">
+                          {aiResult.ema20 !==
+                            undefined
+                            ? Number(
+                                aiResult.ema20
+                              ).toFixed(
+                                2
+                              )
+                            : "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        📉 EMA50:{" "}
+                        <span className="text-purple-400">
+                          {aiResult.ema50 !==
+                            undefined
+                            ? Number(
+                                aiResult.ema50
+                              ).toFixed(
+                                2
+                              )
+                            : "N/A"}
+                        </span>
+                      </p>
+
+                      <p>
+                        ⚡ MACD:{" "}
+                        <span className="text-pink-400">
+                          {aiResult.macd
+                            ?.signal ||
+                            "N/A"}
+                        </span>
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* REASONS */}
+
+                <div>
+
+                  <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
+
+                    <h3 className="mb-4 text-xl font-bold text-yellow-400">
+                      AI Reasons
+                    </h3>
+
+                    {aiResult.reasons
+                      ?.length > 0 ? (
+
+                      <ul className="space-y-3 text-gray-300">
+
+                        {aiResult.reasons.map(
+                          (
+                            reason,
+                            index
+                          ) => (
+
+                            <li
+                              key={
+                                index
+                              }
+                              className="leading-6"
+                            >
+                              ✅{" "}
+                              {reason}
+                            </li>
+
+                          )
+                        )}
+
+                      </ul>
+
+                    ) : (
+
+                      <p className="text-gray-500">
+                        No detailed reasons available.
+                      </p>
+
+                    )}
+
+                  </div>
+
+                </div>
 
               </div>
-              <div className="mt-6 bg-black border border-yellow-500/20 rounded-2xl p-6">
 
-  <h3 className="text-xl font-bold text-yellow-400 mb-4">
-    AI Levels
-  </h3>
-
-  <div className="space-y-2 text-gray-300">
-
-    <p>📍 Support: <span className="text-green-400">{aiResult?.support}</span></p>
-
-    <p>📍 Resistance: <span className="text-red-400">{aiResult?.resistance}</span></p>
-
-    <p>🎯 Target: <span className="text-yellow-400">{aiResult?.target}</span></p>
-
-    <p>🛑 Stop Loss: <span className="text-orange-400">{aiResult?.stopLoss}</span></p>
-
-    <p>📊 RSI: <span className="text-cyan-400">{aiResult?.rsi?.toFixed(2)}</span></p>
-
-    <p>📈 EMA20: <span className="text-blue-400">{aiResult?.ema20?.toFixed(2)}</span></p>
-
-    <p>📉 EMA50: <span className="text-purple-400">{aiResult?.ema50?.toFixed(2)}</span></p>
-
-    <p>⚡ MACD: <span className="text-pink-400">{aiResult?.macd?.signal}</span></p>
-
-  </div>
-
-</div>
-
-            </div>
-
-          </div>
+            )}
 
         </div>
 

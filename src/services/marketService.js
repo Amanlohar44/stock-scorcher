@@ -1,111 +1,187 @@
-import marketDetector from "../utils/marketDetector";
-
 import {
   getStockQuote,
   getCompanyProfile,
 } from "./finnhub";
 
-import { getYahooQuote } from "./yahoo";
+import marketDetector from "../utils/marketDetector";
 
-// Future APIs
-// import { getCryptoQuote } from "./binance";
-// import { getForexQuote } from "./twelveData";
+// =====================================================
+// GET MARKET QUOTE
+// =====================================================
 
 export async function getMarketQuote(symbol) {
-  const market = marketDetector(symbol);
-
-  switch (market) {
-    // ==========================
-    // Crypto
-    // ==========================
-    case "crypto":
-      // return await getCryptoQuote(symbol);
-      return await getStockQuote(symbol);
-
-    // ==========================
-    // Forex
-    // ==========================
-    case "forex":
-      // return await getForexQuote(symbol);
-      return await getStockQuote(symbol);
-
-    // ==========================
-    // Indian Stocks
-    // ==========================
-    case "indian-stock":
-      return await getYahooQuote(symbol);
-
-    // ==========================
-    // Indices
-    // ==========================
-    case "index":
-      return await getYahooQuote(symbol);
-
-    // ==========================
-    // US Stocks
-    // ==========================
-    case "us-stock":
-    default:
-      return await getStockQuote(symbol);
+  if (!symbol) {
+    throw new Error("Symbol is required");
   }
+
+  const s = symbol.toUpperCase().trim();
+
+  if (!s) {
+    throw new Error("Invalid symbol");
+  }
+
+  const market = marketDetector(s);
+
+  console.log("Searching Market:", {
+    symbol: s,
+    market,
+  });
+
+  // ===================================================
+  // INDIAN STOCKS
+  // ===================================================
+
+  if (market === "indian-stock") {
+    return await getStockQuote(`${s}.NS`);
+  }
+
+  // ===================================================
+  // US STOCKS
+  // ===================================================
+
+  if (market === "us-stock") {
+    return await getStockQuote(s);
+  }
+
+  // ===================================================
+  // INDIAN / GLOBAL INDICES
+  // ===================================================
+
+  if (market === "index") {
+    throw new Error(
+      "Index market data is not connected yet."
+    );
+  }
+
+  // ===================================================
+  // CRYPTO
+  // ===================================================
+
+  if (market === "crypto") {
+    throw new Error(
+      "Crypto market data is not connected yet."
+    );
+  }
+
+  // ===================================================
+  // FOREX
+  // ===================================================
+
+  if (market === "forex") {
+    throw new Error(
+      "Forex market data is not connected yet."
+    );
+  }
+
+  // ===================================================
+  // COMMODITIES
+  // ===================================================
+
+  if (market === "commodity") {
+    throw new Error(
+      "Commodity market data is not connected yet."
+    );
+  }
+
+  // ===================================================
+  // DEFAULT
+  // ===================================================
+
+  return await getStockQuote(s);
 }
 
+
+// =====================================================
+// GET COMPANY / ASSET INFORMATION
+// =====================================================
+
 export async function getMarketCompany(symbol) {
-  const market = marketDetector(symbol);
-
-  switch (market) {
-    // ==========================
-    // Crypto
-    // ==========================
-    case "crypto":
-      return {
-        name: symbol,
-        ticker: symbol,
-        exchange: "BINANCE",
-        country: "Global",
-        currency: "USDT",
-      };
-
-    // ==========================
-    // Forex
-    // ==========================
-    case "forex":
-      return {
-        name: symbol,
-        ticker: symbol,
-        exchange: "FOREX",
-        country: "Global",
-        currency: "Various",
-      };
-
-    // ==========================
-    // Indian Stocks
-    // ==========================
-    case "indian-stock":
-      return {
-        name: symbol,
-        ticker: symbol,
-        exchange: "NSE",
-        country: "India",
-        currency: "INR",
-      };
-
-    // ==========================
-    // Indices
-    // ==========================
-    case "index":
-      return {
-        name: symbol,
-        ticker: symbol,
-        exchange: "INDEX",
-        country: "India",
-      };
-
-    // ==========================
-    // US Stocks
-    // ==========================
-    case "us-stock":
-    default:
-      return await getCompanyProfile(symbol);
+  if (!symbol) {
+    throw new Error("Symbol is required");
   }
+
+  const s = symbol.toUpperCase().trim();
+
+  if (!s) {
+    throw new Error("Invalid symbol");
+  }
+
+  const market = marketDetector(s);
+
+  // ===================================================
+  // INDIAN STOCKS
+  // ===================================================
+
+  if (market === "indian-stock") {
+    return await getCompanyProfile(`${s}.NS`);
+  }
+
+  // ===================================================
+  // US STOCKS
+  // ===================================================
+
+  if (market === "us-stock") {
+    return await getCompanyProfile(s);
+  }
+
+  // ===================================================
+  // OTHER MARKETS
+  // ===================================================
+
+  if (market === "crypto") {
+    return {
+      name: s,
+      ticker: s,
+      exchange: "CRYPTO",
+      country: "Global",
+      currency: "USDT",
+      ipo: "N/A",
+    };
+  }
+
+  if (market === "forex") {
+    return {
+      name: s,
+      ticker: s,
+      exchange: "FOREX",
+      country: "Global",
+      currency: "N/A",
+      ipo: "N/A",
+    };
+  }
+
+  if (market === "index") {
+    return {
+      name: s,
+      ticker: s,
+      exchange: "INDEX",
+      country: "India",
+      currency: "INR",
+      ipo: "N/A",
+    };
+  }
+
+  if (market === "commodity") {
+    return {
+      name: s,
+      ticker: s,
+      exchange: "COMMODITY",
+      country: "Global",
+      currency: "USD",
+      ipo: "N/A",
+    };
+  }
+
+  // ===================================================
+  // FALLBACK
+  // ===================================================
+
+  return {
+    name: s,
+    ticker: s,
+    exchange: market.toUpperCase(),
+    country: "Global",
+    currency: "N/A",
+    ipo: "N/A",
+  };
 }
