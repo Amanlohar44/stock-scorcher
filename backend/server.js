@@ -6,15 +6,7 @@ admin.initializeApp({
 });
 
 const firestore = admin.firestore();
-const {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc,
-  increment,
-} = require("firebase-admin/firestore");
+
 
 console.log("🔥 THIS IS MY SERVER FILE");
 
@@ -161,13 +153,10 @@ app.post("/create-order", async (req, res) => {
 
   const code = coupon.trim().toUpperCase();
 
-  const couponQuery = query(
-    collection(firestore, "coupons"),
-    where("code", "==", code)
-  );
-
-  const snapshot = await getDocs(couponQuery);
-
+  const snapshot = await firestore
+  .collection("coupons")
+  .where("code", "==", coupon.trim().toUpperCase())
+  .get();
   if (snapshot.empty) {
     return res.status(400).json({
       success: false,
@@ -282,12 +271,10 @@ app.post("/validate-coupon", async (req, res) => {
 
     const code = coupon.trim().toUpperCase();
 
-    const couponQuery = query(
-      collection(firestore, "coupons"),
-      where("code", "==", code)
-    );
-
-    const snapshot = await getDocs(couponQuery);
+    const snapshot = await firestore
+  .collection("coupons")
+  .where("code", "==", coupon.trim().toUpperCase())
+  .get();
 
     if (snapshot.empty) {
       return res.json({
@@ -402,24 +389,16 @@ app.post("/verify-payment", async (req, res) => {
 
     if (coupon) {
 
-  const couponQuery = query(
-    collection(firestore, "coupons"),
-    where("code", "==", coupon.trim().toUpperCase())
-  );
-
-  const snapshot = await getDocs(couponQuery);
+  const snapshot = await firestore
+  .collection("coupons")
+  .where("code", "==", coupon.trim().toUpperCase())
+  .get();
 
   if (!snapshot.empty) {
 
-    const couponRef = doc(
-      firestore,
-      "coupons",
-      snapshot.docs[0].id
-    );
-
-    await updateDoc(couponRef, {
-      usedCount: increment(1),
-    });
+    await snapshot.docs[0].ref.update({
+  usedCount: admin.firestore.FieldValue.increment(1),
+});
 
   }
 
