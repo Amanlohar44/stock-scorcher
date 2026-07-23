@@ -1,3 +1,21 @@
+const admin = require("firebase-admin");
+const serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const firestore = admin.firestore();
+const {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  increment,
+} = require("firebase-admin/firestore");
+
 console.log("🔥 THIS IS MY SERVER FILE");
 
 const express = require("express");
@@ -140,15 +158,82 @@ app.post("/create-order", async (req, res) => {
     // =====================
 
     if (coupon) {
+
   const code = coupon.trim().toUpperCase();
 
-  if (code !== "AL35") {
+  const couponQuery = query(
+    collection(firestore, "coupons"),
+    where("code", "==", code)
+  );
+
+  const snapshot = await getDocs(couponQuery);
+
+  if (snapshot.empty) {
     return res.status(400).json({
       success: false,
       message: "Invalid Coupon",
     });
   }
+
+  const couponDoc = snapshot.docs[0];
+
+  const couponData = couponDoc.data();
+
+  if (!couponData.active) {
+    return res.status(400).json({
+      success: false,
+      message: "Coupon Disabled",
+    });
+  }
+
 }
+
+  const today = new Date();
+
+  if (new Date(couponData.expiryDate) < today) {
+    return res.status(400).json({
+      success: false,
+      message: "Coupon Expired",
+    });
+  }
+
+  if (
+    couponData.maxUses > 0 &&
+    couponData.usedCount >= couponData.maxUses
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Coupon Usage Limit Reached",
+    });
+  }
+
+  if (
+    couponData.minAmount > 0 &&
+    finalAmount < couponData.minAmount
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: `Minimum order amount is ₹${couponData.minAmount}`,
+    });
+  }
+
+  if (couponData.type === "percentage") {
+
+    finalAmount =
+      finalAmount -
+      (finalAmount * couponData.discount) / 100;
+
+  } else {
+
+    finalAmount =
+      finalAmount - couponData.discount;
+
+  }
+
+  if (finalAmount < 1) {
+    finalAmount = 1;
+  }
+
     const options = {
       amount: finalAmount * 100,
       currency: "INR",
@@ -172,6 +257,93 @@ app.post("/create-order", async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
+    });
+
+  }
+
+});
+
+// =====================
+// VALIDATE COUPON
+// =====================
+
+app.post("/validate-coupon", async (req, res) => {
+
+  try {
+
+    const { coupon, amount } = req.body;
+
+    if (!coupon) {
+      return res.json({
+        success: false,
+        message: "Coupon Required",
+      });
+    }
+
+    const code = coupon.trim().toUpperCase();
+
+    const couponQuery = query(
+      collection(firestore, "coupons"),
+      where("code", "==", code)
+    );
+
+    const snapshot = await getDocs(couponQuery);
+
+    if (snapshot.empty) {
+      return res.json({
+        success: false,
+        message: "Invalid Coupon",
+      });
+    }
+
+    const couponData = snapshot.docs[0].data();
+
+    if (!couponData.active) {
+      return res.json({
+        success: false,
+        message: "Coupon Disabled",
+      });
+    }
+
+    if (new Date(couponData.expiryDate) < new Date()) {
+      return res.json({
+        success: false,
+        message: "Coupon Expired",
+      });
+    }
+
+    if (
+      couponData.maxUses > 0 &&
+      couponData.usedCount >= couponData.maxUses
+    ) {
+      return res.json({
+        success: false,
+        message: "Coupon Limit Reached",
+      });
+    }
+
+    if (
+      couponData.minAmount > 0 &&
+      amount < couponData.minAmount
+    ) {
+      return res.json({
+        success: false,
+        message: `Minimum amount ₹${couponData.minAmount}`,
+      });
+    }
+
+    return res.json({
+      success: true,
+      coupon: couponData,
+    });
+
+  } catch (err) {
+
+    console.log(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
     });
 
   }
@@ -227,6 +399,31 @@ app.post("/verify-payment", async (req, res) => {
 );
 
     }
+
+    if (coupon) {
+
+  const couponQuery = query(
+    collection(firestore, "coupons"),
+    where("code", "==", coupon.trim().toUpperCase())
+  );
+
+  const snapshot = await getDocs(couponQuery);
+
+  if (!snapshot.empty) {
+
+    const couponRef = doc(
+      firestore,
+      "coupons",
+      snapshot.docs[0].id
+    );
+
+    await updateDoc(couponRef, {
+      usedCount: increment(1),
+    });
+
+  }
+
+}
 
     return res.json({
       success: true,

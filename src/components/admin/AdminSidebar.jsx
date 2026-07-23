@@ -6,6 +6,7 @@ import {
   FaCog,
   FaGlobe,
   FaSignOutAlt,
+  FaTags,
 } from "react-icons/fa";
 
 export default function AdminSidebar({
@@ -13,94 +14,94 @@ export default function AdminSidebar({
   setActive,
   handleLogout,
 }) {
+  const menu = [
+    {
+      id: "dashboard",
+      icon: <FaChartPie />,
+      title: "Dashboard",
+    },
+    {
+      id: "modules",
+      icon: <FaBookOpen />,
+      title: "Modules",
+    },
+    {
+      id: "students",
+      icon: <FaUsers />,
+      title: "Students",
+    },
+    {
+      id: "analytics",
+      icon: <FaChartLine />,
+      title: "Analytics",
+    },
+    {
+      id: "coupons",
+      icon: <FaTags />,
+      title: "Coupons",
+    },
+    {
+      id: "settings",
+      icon: <FaCog />,
+      title: "Settings",
+    },
+  ];
+
   return (
-    <aside className="w-72 min-h-screen bg-zinc-950 border-r border-yellow-500/20 p-6 sticky top-0">
+    <aside className="w-72 h-screen bg-zinc-950 border-r border-yellow-500/20 overflow-y-auto">
 
-      <h1 className="text-3xl font-bold text-yellow-400 mb-10">
-        Stock Scorcher
-      </h1>
+      <div className="p-6">
 
-      <p className="text-gray-400 text-sm mb-8">
-        Admin Panel
-      </p>
+        <h1 className="text-3xl font-bold text-yellow-400">
+          Stock Scorcher
+        </h1>
 
-      <div className="space-y-2">
+        <p className="text-gray-400 text-sm mt-2 mb-8">
+          Admin Panel
+        </p>
 
-        <button
-          onClick={() => setActive("dashboard")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
-            active === "dashboard"
-              ? "bg-yellow-400 text-black font-bold"
-              : "hover:bg-zinc-800"
-          }`}
-        >
-          <FaChartPie />
-          Dashboard
-        </button>
+        <div className="space-y-2">
 
-        <button
-          onClick={() => setActive("modules")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
-            active === "modules"
-              ? "bg-yellow-400 text-black font-bold"
-              : "hover:bg-zinc-800"
-          }`}
-        >
-          <FaBookOpen />
-          Modules
-        </button>
+          {menu.map((item) => (
 
-        <button
-          onClick={() => setActive("students")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
-            active === "students"
-              ? "bg-yellow-400 text-black font-bold"
-              : "hover:bg-zinc-800"
-          }`}
-        >
-          <FaUsers />
-          Students
-        </button>
+            <button
+              key={item.id}
+              onClick={() => setActive(item.id)}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
+                active === item.id
+                  ? "bg-yellow-400 text-black font-bold"
+                  : "hover:bg-zinc-800 text-white"
+              }`}
+            >
+              {item.icon}
 
-        <button
-          onClick={() => setActive("analytics")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
-            active === "analytics"
-              ? "bg-yellow-400 text-black font-bold"
-              : "hover:bg-zinc-800"
-          }`}
-        >
-          <FaChartLine />
-          Analytics
-        </button>
+              {item.title}
 
-        <button
-          onClick={() => setActive("settings")}
-          className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl transition ${
-            active === "settings"
-              ? "bg-yellow-400 text-black font-bold"
-              : "hover:bg-zinc-800"
-          }`}
-        >
-          <FaCog />
-          Settings
-        </button>
+            </button>
 
-        <button
-          onClick={() => window.open("/", "_blank")}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-zinc-800 transition"
-        >
-          <FaGlobe />
-          Website
-        </button>
+          ))}
 
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition"
-        >
-          <FaSignOutAlt />
-          Logout
-        </button>
+          <button
+            onClick={() => window.open("/", "_blank")}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-zinc-800 transition"
+          >
+            <FaGlobe />
+
+            Website
+
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition"
+          >
+            <FaSignOutAlt />
+
+            Logout
+
+          </button>
+
+        </div>
 
       </div>
 

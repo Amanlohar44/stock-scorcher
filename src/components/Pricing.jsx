@@ -17,17 +17,52 @@ export default function Pricing() {
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
 
-  const applyCoupon = () => {
-    const code = coupon.trim().toUpperCase();
+  const applyCoupon = async () => {
 
-    if (code === "AL35") {
-      setDiscount(35);
-      alert("🎉 Coupon Applied Successfully");
-    } else {
+  try {
+
+    const { data } = await axios.post(
+      "https://stock-scorcher-backend.onrender.com/validate-coupon",
+      {
+        coupon,
+        amount: 9999,
+      }
+    );
+
+    if (!data.success) {
+
       setDiscount(0);
-      alert("❌ Invalid Coupon");
+
+      alert(data.message);
+
+      return;
+
     }
-  };
+
+    if (data.coupon.type === "percentage") {
+
+      setDiscount(data.coupon.discount);
+
+    } else {
+
+      // Flat coupon support
+      setDiscount(0);
+
+    }
+
+    alert("🎉 Coupon Applied Successfully");
+
+  } catch (err) {
+
+    console.log(err);
+
+    setDiscount(0);
+
+    alert("Invalid Coupon");
+
+  }
+
+};
 
   const getFinalPrice = (price) => {
     return Math.round(price - (price * discount) / 100);
