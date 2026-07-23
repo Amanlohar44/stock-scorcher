@@ -37,6 +37,10 @@ app.options("*", cors());
 
 app.use(express.json());
 
+app.get("/test", (req, res) => {
+  res.send("Backend Working");
+});
+
 // =====================
 // Razorpay
 // =====================
