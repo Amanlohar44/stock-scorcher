@@ -149,40 +149,37 @@ app.post("/create-order", async (req, res) => {
     // Coupon Validation
     // =====================
 
-    if (coupon) {
+    let couponData = null;
 
-  const code = coupon.trim().toUpperCase();
+if (coupon) {
 
   const snapshot = await firestore
-  .collection("coupons")
-  .where("code", "==", coupon.trim().toUpperCase())
-  .get();
+    .collection("coupons")
+    .where("code", "==", coupon.trim().toUpperCase())
+    .get();
+
   if (snapshot.empty) {
     return res.status(400).json({
-      success: false,
-      message: "Invalid Coupon",
+      success:false,
+      message:"Invalid Coupon",
     });
   }
 
-  const couponDoc = snapshot.docs[0];
-
-  const couponData = couponDoc.data();
+  couponData = snapshot.docs[0].data();
 
   if (!couponData.active) {
     return res.status(400).json({
-      success: false,
-      message: "Coupon Disabled",
+      success:false,
+      message:"Coupon Disabled",
     });
   }
-
-}
 
   const today = new Date();
 
   if (new Date(couponData.expiryDate) < today) {
     return res.status(400).json({
-      success: false,
-      message: "Coupon Expired",
+      success:false,
+      message:"Coupon Expired",
     });
   }
 
@@ -191,8 +188,8 @@ app.post("/create-order", async (req, res) => {
     couponData.usedCount >= couponData.maxUses
   ) {
     return res.status(400).json({
-      success: false,
-      message: "Coupon Usage Limit Reached",
+      success:false,
+      message:"Coupon Usage Limit Reached",
     });
   }
 
@@ -201,8 +198,8 @@ app.post("/create-order", async (req, res) => {
     finalAmount < couponData.minAmount
   ) {
     return res.status(400).json({
-      success: false,
-      message: `Minimum order amount is ₹${couponData.minAmount}`,
+      success:false,
+      message:`Minimum order amount is ₹${couponData.minAmount}`,
     });
   }
 
@@ -222,6 +219,9 @@ app.post("/create-order", async (req, res) => {
   if (finalAmount < 1) {
     finalAmount = 1;
   }
+
+}
+    
 
     const options = {
       amount: finalAmount * 100,
