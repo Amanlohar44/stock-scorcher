@@ -1,15 +1,27 @@
-const admin = require("firebase-admin");
+require("dotenv").config();
 
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-  }),
-});
+const {
+  getApps,
+  initializeApp,
+  cert,
+} = require("firebase-admin/app");
 
-const firestore = admin.firestore();
+const {
+  getFirestore,
+} = require("firebase-admin/firestore");
 
+const firebaseApp =
+  getApps().length === 0
+    ? initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+        }),
+      })
+    : getApps()[0];
+
+const firestore = getFirestore(firebaseApp);
 
 console.log("🔥 THIS IS MY SERVER FILE");
 
@@ -54,7 +66,7 @@ const razorpay = new Razorpay({
 });
 
 console.log("KEY:", process.env.RAZORPAY_KEY_ID);
-console.log("SECRET:", process.env.RAZORPAY_KEY_SECRET);
+
 
 // =====================
 // Email
