@@ -1,4 +1,4 @@
-import Navbar from "../components/Navbar";
+import Navbar from "../components/navbar/Navbar";
 import Footer from "../components/Footer";
 
 import MembershipHero from "../components/membership/MembershipHero";
@@ -7,17 +7,15 @@ import PricingCards from "../components/membership/PricingCards";
 export default function Membership() {
   return (
     <div className="bg-black text-white min-h-screen">
-
       <Navbar />
 
       <MembershipHero />
 
       <section id="pricing">
-  <PricingCards />
-</section>
+        <PricingCards />
+      </section>
 
       <Footer />
-
     </div>
   );
 }
