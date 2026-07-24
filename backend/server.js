@@ -160,90 +160,19 @@ app.post("/create-order", async (req, res) => {
   console.log("🔥 CREATE ORDER HIT");
 
   try {
-    const { amount, coupon } = req.body;
+    const { amount } = req.body;
 
-    let finalAmount = Number(amount);
+    const finalAmount = Number(amount);
 
-    // =====================
-    // Coupon Validation
-    // =====================
-
-    let couponData = null;
-
-if (coupon) {
-
-  const snapshot = await firestore
-    .collection("coupons")
-    .where("code", "==", coupon.trim().toUpperCase())
-    .get();
-
-  if (snapshot.empty) {
-    return res.status(400).json({
-      success:false,
-      message:"Invalid Coupon",
-    });
-  }
-
-  couponData = snapshot.docs[0].data();
-
-  if (!couponData.active) {
-    return res.status(400).json({
-      success:false,
-      message:"Coupon Disabled",
-    });
-  }
-
-  const today = new Date();
-
-  if (new Date(couponData.expiryDate) < today) {
-    return res.status(400).json({
-      success:false,
-      message:"Coupon Expired",
-    });
-  }
-
-  if (
-    couponData.maxUses > 0 &&
-    couponData.usedCount >= couponData.maxUses
-  ) {
-    return res.status(400).json({
-      success:false,
-      message:"Coupon Usage Limit Reached",
-    });
-  }
-
-  if (
-    couponData.minAmount > 0 &&
-    finalAmount < couponData.minAmount
-  ) {
-    return res.status(400).json({
-      success:false,
-      message:`Minimum order amount is ₹${couponData.minAmount}`,
-    });
-  }
-
-  if (couponData.type === "percentage") {
-
-    finalAmount =
-      finalAmount -
-      (finalAmount * couponData.discount) / 100;
-
-  } else {
-
-    finalAmount =
-      finalAmount - couponData.discount;
-
-  }
-
-  if (finalAmount < 1) {
-    finalAmount = 1;
-  }
-
-}
-    
+    if (!finalAmount || finalAmount < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment amount",
+      });
+    }
 
     const options = {
-      amount: finalAmount * 100,
+      amount: Math.round(finalAmount * 100),
       currency: "INR",
       receipt: "receipt_" + Date.now(),
     };
@@ -251,25 +180,24 @@ if (coupon) {
     const order = await razorpay.orders.create(options);
 
     console.log("✅ Order Created:", order.id);
+    console.log("💰 Order Amount:", finalAmount);
 
     res.json({
       ...order,
       finalAmount,
-      coupon: coupon || null,
     });
 
   } catch (error) {
-
     console.error("CREATE ORDER ERROR:", error);
 
     res.status(500).json({
       success: false,
       error: error.message,
     });
-
   }
-
 });
+
+   
 
 // =====================
 // VALIDATE COUPON
