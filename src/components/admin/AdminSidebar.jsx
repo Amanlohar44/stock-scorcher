@@ -48,7 +48,7 @@ export default function AdminSidebar({
   ];
 
   return (
-    <aside className="w-72 h-screen bg-zinc-950 border-r border-yellow-500/20 overflow-y-auto">
+    <aside className="w-72 max-w-[85vw] h-screen bg-zinc-950 border-r border-yellow-500/20 overflow-y-auto">
 
       <div className="p-6">
 
