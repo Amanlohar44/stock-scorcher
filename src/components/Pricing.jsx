@@ -72,13 +72,19 @@ export default function Pricing() {
     try {
       const finalAmount = getFinalPrice(amount);
 
-      const { data } = await axios.post(
-        "https://stock-scorcher-backend.onrender.com/create-order",
-        {
-          amount: finalAmount,
-          coupon,
-        }
-      );
+console.log("PAYMENT:", {
+  originalAmount: amount,
+  finalAmount,
+  coupon,
+});
+
+const { data } = await axios.post(
+  "https://stock-scorcher-backend.onrender.com/create-order",
+  {
+    amount: finalAmount,
+    coupon: coupon || "",
+  }
+);
 
       const options = {
         key: "rzp_live_TB6ROKtV9GwMGv",
