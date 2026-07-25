@@ -3,10 +3,10 @@ import { Star } from "lucide-react";
 export default function Testimonials() {
   const reviews = [
     {
-      name: "Rahul Sharma",
-      role: "Swing Trader",
-      image: "R",
-      profit: "+148%",
+      name: "Manish Patel",
+      role: "Professional Trader",
+      image: "MP",
+      profit: "+189%",
       text: "Stock Scorcher completely changed my trading mindset. The AI signals and premium strategies helped me become a confident trader.",
     },
     {
