@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Crown, Check, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { auth, db } from "../../firebase";
@@ -36,81 +35,18 @@ const features = [
 export default function PricingCards() {
   const navigate = useNavigate();
 
-  const [coupon, setCoupon] = useState("");
-  const [discount, setDiscount] = useState(0);
-
-  const applyCoupon = async () => {
-
-  try {
-
-    const { data } = await axios.post(
-      "https://stock-scorcher-backend.onrender.com/validate-coupon",
-      {
-        coupon,
-        amount: 9999,
-      }
-    );
-
-    if (!data.success) {
-
-      setDiscount(0);
-
-      alert(data.message);
-
-      return;
-
-    }
-
-    if (data.coupon.type === "percentage") {
-
-      setDiscount(data.coupon.discount);
-
-    } else {
-
-      // Flat coupon support
-      setDiscount(0);
-
-    }
-
-    alert("🎉 Coupon Applied Successfully");
-
-  } catch (err) {
-
-    console.log(err);
-
-    setDiscount(0);
-
-    alert("Invalid Coupon");
-
-  }
-
-};
-
-  const getFinalPrice = (price) => {
-    return Math.round(price - (price * discount) / 100);
-  };
-
   const handleMembershipPayment = async (plan, amount) => {
     try {
+      const finalAmount = amount;
 
-      const finalAmount = getFinalPrice(amount);
+      const { data } = await axios.post(
+        "https://stock-scorcher-backend.onrender.com/create-order",
+        {
+          amount: finalAmount,
+        }
+      );
 
-console.log("PAYMENT:", {
-  originalAmount: amount,
-  finalAmount,
-  coupon,
-});
-
-const { data } = await axios.post(
-  "https://stock-scorcher-backend.onrender.com/create-order",
-  {
-    amount: finalAmount,
-    coupon,
-  }
-);
-
-
-            const options = {
+      const options = {
         key: "rzp_live_TB6ROKtV9GwMGv",
 
         amount: data.amount,
@@ -133,7 +69,6 @@ const { data } = await axios.post(
 
         handler: async function (response) {
           try {
-
             document
               .querySelectorAll(".razorpay-container")
               .forEach((e) => e.remove());
@@ -141,33 +76,19 @@ const { data } = await axios.post(
             const verify = await axios.post(
               "https://stock-scorcher-backend.onrender.com/verify-payment",
               {
-                razorpay_order_id:
-                  response.razorpay_order_id,
-
-                razorpay_payment_id:
-                  response.razorpay_payment_id,
-
-                razorpay_signature:
-                  response.razorpay_signature,
-
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
                 email: auth.currentUser?.email,
-
                 amount: finalAmount,
-
                 originalPrice: amount,
-
-                coupon,
-
-                discount,
               }
             );
 
             if (verify.data.success) {
-
               const user = auth.currentUser;
 
               if (user) {
-
                 const expiry = new Date();
 
                 if (plan === "Monthly") {
@@ -180,32 +101,15 @@ const { data } = await axios.post(
                   doc(db, "memberships", user.uid),
                   {
                     uid: user.uid,
-
                     email: user.email,
-
                     plan,
-
                     originalPrice: amount,
-
                     paidAmount: finalAmount,
-
-                    coupon,
-
-                    discount,
-
                     status: "active",
-
-                    purchasedAt:
-                      new Date().toISOString(),
-
-                    expiryDate:
-                      expiry.toISOString(),
-
-                    paymentId:
-                      response.razorpay_payment_id,
-
-                    orderId:
-                      response.razorpay_order_id,
+                    purchasedAt: new Date().toISOString(),
+                    expiryDate: expiry.toISOString(),
+                    paymentId: response.razorpay_payment_id,
+                    orderId: response.razorpay_order_id,
                   },
                   {
                     merge: true,
@@ -216,19 +120,15 @@ const { data } = await axios.post(
                   doc(db, "users", user.uid),
                   {
                     premium: true,
-
                     membershipStatus: "active",
-
                     membershipPlan: plan,
-
-                    membershipExpiry:
-                      expiry.toISOString(),
+                    membershipExpiry: expiry.toISOString(),
                   },
                   {
                     merge: true,
                   }
                 );
-              }
+                              }
 
               alert("🎉 Membership Activated");
 
@@ -251,14 +151,8 @@ const { data } = await axios.post(
         },
 
         prefill: {
-
-          name:
-            auth.currentUser?.displayName ||
-            "Member",
-
-          email:
-            auth.currentUser?.email || "",
-
+          name: auth.currentUser?.displayName || "Member",
+          email: auth.currentUser?.email || "",
         },
 
         theme: {
@@ -286,11 +180,13 @@ const { data } = await axios.post(
     }
 
   };
-    return (
+
+  return (
     <section
       id="membership-pricing"
       className="relative overflow-hidden bg-[#030303] py-28"
     >
+
       {/* Background */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[#030303]" />
@@ -333,38 +229,10 @@ const { data } = await axios.post(
             smart alerts and exclusive member benefits.
           </p>
 
-          {/* Coupon */}
-
-          <div className="mt-10 flex flex-col items-center gap-4 md:flex-row md:justify-center">
-
-            <input
-              type="text"
-              value={coupon}
-              onChange={(e) => setCoupon(e.target.value)}
-              placeholder="Enter Coupon Code"
-              className="w-72 rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-3 text-white outline-none focus:border-yellow-400"
-            />
-
-            <button
-              onClick={applyCoupon}
-              className="rounded-xl bg-yellow-400 px-6 py-3 font-bold text-black hover:bg-yellow-300"
-            >
-              Apply Coupon
-            </button>
-
-          </div>
-
-          {discount > 0 && (
-            <p className="mt-4 text-green-400 text-lg font-bold">
-              🎉 Coupon Applied ({discount}% OFF)
-            </p>
-          )}
-
         </div>
 
         <div className="mt-20 grid gap-8 lg:grid-cols-2">
-
-          {plans.map((plan) => (
+                      {plans.map((plan) => (
 
             <div
               key={plan.title}
@@ -374,7 +242,8 @@ const { data } = await axios.post(
                   : "border-green-500/50 bg-gradient-to-b from-green-500/10 to-white/5 hover:shadow-[0_0_60px_rgba(34,197,94,.20)]"
               }`}
             >
-                              <div
+
+              <div
                 className={`absolute right-6 top-6 rounded-full px-4 py-2 text-sm font-bold ${
                   plan.color === "yellow"
                     ? "bg-yellow-400 text-black"
@@ -400,12 +269,6 @@ const { data } = await axios.post(
 
               <div className="mt-6">
 
-                {discount > 0 && (
-                  <div className="text-zinc-500 line-through text-2xl">
-                    ₹{plan.price}
-                  </div>
-                )}
-
                 <div className="flex items-end gap-2">
 
                   <span
@@ -415,7 +278,7 @@ const { data } = await axios.post(
                         : "text-green-400"
                     }`}
                   >
-                    ₹{getFinalPrice(plan.price)}
+                    ₹{plan.price}
                   </span>
 
                   <span className="pb-2 text-zinc-400">
@@ -423,13 +286,6 @@ const { data } = await axios.post(
                   </span>
 
                 </div>
-
-                {discount > 0 && (
-                  <div className="mt-2 text-green-400 font-bold">
-                    🎉 You Save ₹
-                    {plan.price - getFinalPrice(plan.price)}
-                  </div>
-                )}
 
               </div>
 
@@ -471,7 +327,7 @@ const { data } = await axios.post(
                     : "bg-green-500 text-white hover:scale-[1.03] hover:bg-green-400"
                 }`}
               >
-                Join Now
+                Buy Now
                 <ArrowRight size={20} />
               </button>
 
@@ -486,8 +342,7 @@ const { data } = await axios.post(
             </div>
 
           ))}
-
-        </div>
+                  </div>
 
       </div>
 
