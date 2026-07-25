@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import WhatsAppButton from "../components/WhatsAppButton";
 import Navbar from "../components/navbar/Navbar";
 import Hero from "../components/hero/Hero";
@@ -14,74 +15,88 @@ import PricingCards from "../components/membership/PricingCards";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
+    <>
+      <Helmet>
+        <title>
+          Stock Scorcher | Learn Stock Market Trading & AI Analysis
+        </title>
 
-      <Navbar />
+        <meta
+          name="description"
+          content="Learn Stock Market Trading with Stock Scorcher. AI Trading, Swing Trading, Price Action, Technical Analysis, Premium Courses and Mentorship."
+        />
 
-      <main>
+        <meta
+          name="keywords"
+          content="Stock Scorcher, Stock Market Course, Swing Trading, AI Trading, Technical Analysis"
+        />
 
-        {/* Hero */}
-        <section id="home">
-          <Hero />
-        </section>
+        <link
+          rel="canonical"
+          href="https://stockscorcher.com/"
+        />
+      </Helmet>
 
-        {/* Divider */}
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
+      <div className="min-h-screen bg-[#030303] text-white overflow-x-hidden">
 
-        {/* Why Choose */}
-        <section id="features">
-          <Features />
-        </section>
+        <Navbar />
 
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+        <main>
 
-        {/* Courses */}
-        <section id="courses">
-          <Courses />
-        </section>
+          <section id="home">
+            <Hero />
+          </section>
 
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
 
-        {/* Premium Membership */}
-        <section id="membership">
-          <PremiumFeatures />
-          <PricingCards />
-        </section>
+          <section id="features">
+            <Features />
+          </section>
 
-<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-        {/* Testimonials */}
-        <section id="testimonials">
-          <Testimonials />
-        </section>
+          <section id="courses">
+            <Courses />
+          </section>
 
-<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-        {/* Pricing */}
-        <section id="pricing">
-          <Pricing />
-        </section>
+          <section id="membership">
+            <PremiumFeatures />
+            <PricingCards />
+          </section>
 
-<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-        {/* FAQ */}
-        <section id="faq">
-          <Faq />
-        </section>
+          <section id="testimonials">
+            <Testimonials />
+          </section>
 
-<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-        {/* Contact */}
-        <section id="contact">
-          <Contact />
-        </section>
+          <section id="pricing">
+            <Pricing />
+          </section>
 
-      </main>
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-      <WhatsAppButton />
+          <section id="faq">
+            <Faq />
+          </section>
 
-      <Footer />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
-    </div>
+          <section id="contact">
+            <Contact />
+          </section>
+
+        </main>
+
+        <WhatsAppButton />
+
+        <Footer />
+
+      </div>
+    </>
   );
 }
