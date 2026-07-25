@@ -39,10 +39,14 @@ app.use(
   cors({
     origin: [
       "https://stock-scorcher-eight.vercel.app",
+      "https://stockscorcher.com",
+      "https://www.stockscorcher.com",
       "http://localhost:5177",
+      "http://localhost:5173",
     ],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
+    credentials: true,
   })
 );
 
