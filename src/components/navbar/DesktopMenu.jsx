@@ -26,6 +26,8 @@ export default function DesktopMenu() {
 
       <NavButton to="/#courses">Courses</NavButton>
 
+      <NavButton to="/about">About</NavButton>
+
       <NavButton to="/#testimonials">Reviews</NavButton>
 
       <NavButton to="/#faq">FAQ</NavButton>

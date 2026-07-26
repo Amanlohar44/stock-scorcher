@@ -9,7 +9,7 @@ import Pricing from "../components/Pricing";
 import Faq from "../components/Faq";
 import Contact from "../components/Contact";
 import Footer from "../components/Footer";
-
+import AboutFounder from "../components/AboutFounder";
 import PremiumFeatures from "../components/membership/PremiumFeatures";
 import PricingCards from "../components/membership/PricingCards";
 
@@ -48,6 +48,13 @@ export default function Home() {
           </section>
 
           <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
+
+          <section id="about">
+  <AboutFounder />
+</section>
+
+<div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+
 
           <section id="features">
             <Features />

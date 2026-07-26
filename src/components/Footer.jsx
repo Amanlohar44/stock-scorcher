@@ -105,6 +105,13 @@ export default function Footer() {
                 Courses
               </a>
 
+              <a
+  href="/about"
+  className="block text-zinc-400 transition hover:text-yellow-400"
+>
+  About Us
+</a>
+
               <a href="#faq" className="block text-zinc-400 hover:text-yellow-400 transition">
                 FAQ
               </a>
@@ -170,6 +177,43 @@ export default function Footer() {
             </div>
 
           </div>
+          <div className="mt-10">
+  <h3 className="text-2xl font-bold text-white">
+    Legal
+  </h3>
+
+  <div className="mt-5 space-y-3">
+
+    <a
+      href="/privacy-policy"
+      className="block text-zinc-400 transition hover:text-yellow-400"
+    >
+      Privacy Policy
+    </a>
+
+    <a
+      href="/terms"
+      className="block text-zinc-400 transition hover:text-yellow-400"
+    >
+      Terms & Conditions
+    </a>
+
+    <a
+      href="/disclaimer"
+      className="block text-zinc-400 transition hover:text-yellow-400"
+    >
+      Disclaimer
+    </a>
+
+    <a
+      href="/refund-policy"
+      className="block text-zinc-400 transition hover:text-yellow-400"
+    >
+      Refund Policy
+    </a>
+
+  </div>
+</div>
 
           {/* Follow Us */}
 
@@ -263,7 +307,7 @@ export default function Footer() {
 
             <p className="mt-2 text-sm text-zinc-600 text-center md:text-left">
 
-              Built with ❤️ for the Trading Community.
+              Learn • Analyze • Grow | Founded by Aman Lohar
 
             </p>
 

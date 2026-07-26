@@ -12,6 +12,7 @@ const links = [
   { name: "Features", href: "/#features" },
   { name: "Membership", href: "/#membership" },
   { name: "Courses", href: "/#courses" },
+  { name: "About", href: "/about" },
   { name: "Reviews", href: "/#testimonials" },
   { name: "FAQ", href: "/#faq" },
   { name: "Contact", href: "/#contact" },

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import About from "./pages/About";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -51,6 +51,11 @@ export default function App() {
           path="/courses"
           element={<Courses />}
         />
+
+        <Route
+  path="/about"
+  element={<About />}
+/>
 
         <Route
           path="/membership"
