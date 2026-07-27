@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -174,36 +175,95 @@ export default function Courses() {
       return;
     }
 
+    try {
     const finalAmount = getFinalPrice(plan);
 
+    console.log("Amount:", finalAmount);
+    const { data } = await axios.post(
+  "https://stock-scorcher-backend.onrender.com/create-order",
+  {
+    amount: finalAmount,
+  }
+);
+
     const options = {
-      key: "YOUR_RAZORPAY_KEY_ID",
-      amount: finalAmount * 100,
-      currency: "INR",
+      key: "rzp_live_TB6ROKtV9GwMGv",
+      amount: data.amount,
+currency: data.currency,
+order_id: data.id,
+      
       name: "Stock Scorcher",
       description: `${plan.name} ${appliedCoupons[plan.id] ? `(Coupon: ${appliedCoupons[plan.id].code})` : ""}`,
       image: "/founder.png",
-      handler: async function (response) {
-        try {
-          const purchaseRef = doc(db, "purchases", user.uid);
-          await setDoc(purchaseRef, {
-            planId: plan.id,
-            planName: plan.name,
-            originalPrice: plan.price,
-            finalPaidPrice: finalAmount,
-            appliedCoupon: appliedCoupons[plan.id]?.code || null,
-            paymentId: response.razorpay_payment_id,
-            purchasedAt: new Date().toISOString(),
-            status: "active"
-          });
+      
+handler: async function (response) {
+  try {
+    const verify = await axios.post(
+      "https://stock-scorcher-backend.onrender.com/verify-payment",
+      {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+        email: user.email,
+        amount: finalAmount,
+      }
+    );
 
-          alert("Payment Successful! Access granted.");
-          navigate("/dashboard");
-        } catch (err) {
-          console.error("Error saving purchase:", err);
-          alert("Payment received, but error saving database record.");
-        }
+    if (!verify.data.success) {
+      alert("Payment Verification Failed");
+      return;
+    }
+
+    await setDoc(
+      doc(db, "purchases", user.uid),
+      {
+        uid: user.uid,
+        email: user.email,
+
+        planId: plan.id,
+        planName: plan.name,
+
+        originalPrice: plan.price,
+        paidAmount: finalAmount,
+
+        paymentId: response.razorpay_payment_id,
+        orderId: response.razorpay_order_id,
+
+        purchased: true,
+        paymentStatus: "paid",
+        purchasedAt: new Date().toISOString(),
       },
+      { merge: true }
+    );
+
+    // Pro Membership
+    if (plan.id === "pro-mentorship") {
+      const expiry = new Date();
+      expiry.setFullYear(expiry.getFullYear() + 1);
+
+      await setDoc(
+        doc(db, "memberships", user.uid),
+        {
+          uid: user.uid,
+          email: user.email,
+          plan: "1 Year VIP Membership",
+          status: "active",
+          expiresAt: expiry.toISOString(),
+          purchasedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    }
+
+    alert("🎉 Payment Successful");
+
+    navigate("/payment-success");
+  } catch (err) {
+    console.log(err);
+    alert("Payment Verification Failed");
+  }
+},
+         
       prefill: {
         name: user.displayName || "Trader",
         email: user.email || "",
@@ -216,6 +276,12 @@ export default function Courses() {
     const paymentModal = new window.Razorpay(options);
     paymentModal.open();
     setLoadingPlanId(null);
+    } catch (err) {
+  console.log(err.response?.data);
+  console.log(err);
+  alert("Payment Error");
+  setLoadingPlanId(null);
+}
   };
 
   return (

@@ -110,7 +110,7 @@ async function sendPaymentEmail(
       <br>
 
       <a
-      href="https://stock-scorcher-eight.vercel.app/dashboard"
+      href="https://stockscorcher.com/dashboard"
       style="
       background:#FFD700;
       color:black;
