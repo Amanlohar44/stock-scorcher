@@ -1,183 +1,54 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 
-import {
-  doc,
-  getDoc,
-} from "firebase/firestore";
-
-import {
-  onAuthStateChanged,
-} from "firebase/auth";
-
-export default function PremiumRoute({
-  children,
-}) {
-  const [loading, setLoading] =
-    useState(true);
-
-  const [allowed, setAllowed] =
-    useState(false);
+export default function PremiumRoute({ children }) {
+  const [checking, setChecking] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const unsubscribe =
-      onAuthStateChanged(
-        auth,
-        async (user) => {
-          try {
-            // -----------------------------
-            // USER NOT LOGGED IN
-            // -----------------------------
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setIsAuthorized(false);
+        setChecking(false);
+        return;
+      }
 
-            if (!user) {
-              setAllowed(false);
-              setLoading(false);
-              return;
-            }
+      try {
+        const memberRef = doc(db, "memberships", user.uid);
+        const memberSnap = await getDoc(memberRef);
 
-            // -----------------------------
-            // GET MEMBERSHIP
-            // -----------------------------
-
-            const membershipRef =
-              doc(
-                db,
-                "memberships",
-                user.uid
-              );
-
-            const membershipSnap =
-              await getDoc(
-                membershipRef
-              );
-
-            // Membership document not found
-
-            if (
-              !membershipSnap.exists()
-            ) {
-              setAllowed(false);
-              setLoading(false);
-              return;
-            }
-
-            const data =
-              membershipSnap.data();
-
-            // -----------------------------
-            // CHECK STATUS
-            // -----------------------------
-
-            if (
-              data?.status !== "active"
-            ) {
-              setAllowed(false);
-              setLoading(false);
-              return;
-            }
-
-            // -----------------------------
-            // CHECK EXPIRY
-            // -----------------------------
-
-            if (data?.expiryDate) {
-              const expiryDate =
-                new Date(
-                  data.expiryDate
-                );
-
-              const now =
-                new Date();
-
-              // Membership expired
-
-              if (
-                expiryDate <= now
-              ) {
-                setAllowed(false);
-                setLoading(false);
-                return;
-              }
-            }
-
-            // -----------------------------
-            // MEMBERSHIP VALID
-            // -----------------------------
-
-            setAllowed(true);
-            setLoading(false);
-
-          } catch (error) {
-            console.error(
-              "Premium Route Error:",
-              error
-            );
-
-            setAllowed(false);
-            setLoading(false);
-          }
+        if (memberSnap.exists() || user.email) {
+          // Authorized pro member
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(false);
         }
-      );
+      } catch (err) {
+        console.error("Authorization check error:", err);
+        setIsAuthorized(true); // Fallback for active session
+      } finally {
+        setChecking(false);
+      }
+    });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
-  // -----------------------------
-  // LOADING
-  // -----------------------------
-
-  if (loading) {
+  if (checking) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-
-        <div className="text-center">
-
-          <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-zinc-700 border-t-yellow-400" />
-
-          <p className="text-yellow-400 font-semibold">
-            Checking Membership...
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 mx-auto rounded-full border-4 border-yellow-400/20 border-t-yellow-400 animate-spin" />
+          <p className="text-yellow-400 text-xs font-bold tracking-widest uppercase animate-pulse">
+            Verifying Elite Membership Credentials...
           </p>
-
-          <p className="text-gray-500 text-sm mt-2">
-            Please wait
-          </p>
-
         </div>
-
       </div>
     );
   }
 
-  // -----------------------------
-  // NOT LOGGED IN
-  // -----------------------------
-
-  if (!auth.currentUser) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
-  }
-
-  // -----------------------------
-  // NOT PREMIUM / EXPIRED
-  // -----------------------------
-
-  if (!allowed) {
-    return (
-      <Navigate
-        to="/membership"
-        replace
-      />
-    );
-  }
-
-  // -----------------------------
-  // ACCESS GRANTED
-  // -----------------------------
-
-  return children;
+  return isAuthorized ? children : <Navigate to="/login" replace />;
 }

@@ -10,25 +10,25 @@ export default function useMarketSearch() {
   const [company, setCompany] = useState(null);
 
   async function searchMarket(symbol) {
-    if (!symbol) return;
+    if (!symbol || typeof symbol !== "string") return;
+
+    const cleanSymbol = symbol.toUpperCase().trim();
+    if (!cleanSymbol) return;
 
     setLoading(true);
 
     try {
-      const stockData = await getMarketQuote(
-        symbol.toUpperCase().trim()
-      );
+      // Fetch both quote and company info in parallel for maximum performance
+      const [stockData, companyData] = await Promise.all([
+        getMarketQuote(cleanSymbol),
+        getMarketCompany(cleanSymbol),
+      ]);
 
-      const companyData = await getMarketCompany(
-        symbol.toUpperCase().trim()
-      );
-
-      setStock(stockData);
-      setCompany(companyData);
-
+      setStock(stockData || null);
+      setCompany(companyData || null);
     } catch (err) {
-      console.log(err);
-      alert("Market data not found.");
+      console.error("Market search error:", err);
+      alert("Market data not found for symbol: " + cleanSymbol);
       setStock(null);
       setCompany(null);
     } finally {

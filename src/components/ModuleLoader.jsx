@@ -12,19 +12,19 @@ export default function ModuleLoader({
       try {
         const snapshot = await getDocs(collection(db, "modules"));
 
-        let modules = snapshot.docs.map((doc) => ({
+        const modules = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        // createdAt ke hisaab se sort
+        // Sort by createdAt timestamp
         modules.sort((a, b) => {
           const aTime = a.createdAt?.seconds || 0;
           const bTime = b.createdAt?.seconds || 0;
           return aTime - bTime;
         });
 
-        // Har document = ek Day
+        // Format each document as a Day
         const finalData = modules.map((item, index) => ({
           day: index + 1,
           lessons: [item],
@@ -32,11 +32,11 @@ export default function ModuleLoader({
 
         setLessons(finalData);
 
-        // Page load par koi video auto-select nahi hoga
-setCurrentLesson(null);
-setCurrentVideo("");
+        // Do not auto-select any video on initial load
+        setCurrentLesson(null);
+        setCurrentVideo("");
       } catch (err) {
-        console.log(err);
+        console.error("Error loading course modules:", err);
       }
     };
 

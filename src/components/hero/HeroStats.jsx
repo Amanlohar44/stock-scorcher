@@ -1,3 +1,4 @@
+import React from "react";
 import {
   FaUsers,
   FaRobot,
@@ -34,15 +35,15 @@ export default function HeroStats() {
       {stats.map((item) => (
         <div
           key={item.title}
-          className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-yellow-400"
+          className="rounded-3xl border border-white/10 bg-[#060606] p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-yellow-400/50 shadow-xl"
         >
           {item.icon}
 
-          <h2 className="mt-4 text-4xl font-black">
+          <h3 className="mt-4 text-3xl sm:text-4xl font-black text-white">
             {item.number}
-          </h2>
+          </h3>
 
-          <p className="mt-2 text-zinc-400">
+          <p className="mt-2 text-xs sm:text-sm text-zinc-400 font-light">
             {item.title}
           </p>
         </div>

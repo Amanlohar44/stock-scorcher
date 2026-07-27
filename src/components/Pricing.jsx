@@ -14,29 +14,21 @@ import {
 export default function Pricing() {
   const navigate = useNavigate();
 
-
-
-
-
-  
-
   const handlePayment = async (amount) => {
     try {
       const finalAmount = amount;
 
-console.log("PAYMENT:", {
-  originalAmount: amount,
-  finalAmount,
-});
+      console.log("PAYMENT:", {
+        originalAmount: amount,
+        finalAmount,
+      });
 
-const { data } = await axios.post(
-  "https://stock-scorcher-backend.onrender.com/create-order",
-  {
-  amount: finalAmount,
-}
-);
-
-
+      const { data } = await axios.post(
+        "https://stock-scorcher-backend.onrender.com/create-order",
+        {
+          amount: finalAmount,
+        }
+      );
 
       const options = {
         key: "rzp_live_TB6ROKtV9GwMGv",
@@ -66,41 +58,60 @@ const { data } = await axios.post(
               .forEach((e) => e.remove());
 
             const verify = await axios.post(
-  "https://stock-scorcher-backend.onrender.com/verify-payment",
-  {
-  razorpay_order_id: response.razorpay_order_id,
-  razorpay_payment_id: response.razorpay_payment_id,
-  razorpay_signature: response.razorpay_signature,
-  email: auth.currentUser?.email,
-  amount: finalAmount,
-}
-);
+              "https://stock-scorcher-backend.onrender.com/verify-payment",
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                email: auth.currentUser?.email,
+                amount: finalAmount,
+              }
+            );
 
             if (verify.data.success) {
               const user = auth.currentUser;
 
               if (user) {
+                // 1. Save Course Purchase in 'purchases' collection with 'course' field set to amount
                 await setDoc(
-  doc(db, "purchases", user.uid),
-  {
-    uid: user.uid,
-    email: user.email,
+                  doc(db, "purchases", user.uid),
+                  {
+                    uid: user.uid,
+                    email: user.email,
+                    course: finalAmount,
 
-    originalPrice: amount,
-    paidAmount: finalAmount,
+                    originalPrice: amount,
+                    paidAmount: finalAmount,
 
-    
+                    purchased: true,
+                    paymentStatus: "paid",
 
-    purchased: true,
-    paymentStatus: "paid",
+                    paymentId: response.razorpay_payment_id,
+                    orderId: response.razorpay_order_id,
 
-    paymentId: response.razorpay_payment_id,
-    orderId: response.razorpay_order_id,
+                    purchasedAt: new Date().toISOString(),
+                  },
+                  { merge: true }
+                );
 
-    purchasedAt: new Date().toISOString(),
-  },
-  { merge: true }
-);
+                // 2. BUNDLE OFFER: If user purchases the ₹9999 Pro Mentorship plan, grant 1-Year VIP Membership automatically
+                if (Number(finalAmount) === 9999) {
+                  const oneYearExpiry = new Date();
+                  oneYearExpiry.setFullYear(oneYearExpiry.getFullYear() + 1);
+
+                  await setDoc(
+                    doc(db, "memberships", user.uid),
+                    {
+                      uid: user.uid,
+                      email: user.email,
+                      plan: "1 Year VIP Membership",
+                      status: "active",
+                      expiresAt: oneYearExpiry.toISOString(),
+                      purchasedAt: new Date().toISOString(),
+                    },
+                    { merge: true }
+                  );
+                }
               }
 
               alert("🎉 Payment Successful");
@@ -148,57 +159,40 @@ const { data } = await axios.post(
       className="relative overflow-hidden bg-[#030303] py-28"
     >
       <div className="absolute inset-0">
-
         <div className="absolute inset-0 bg-[#030303]" />
 
         <div className="absolute -top-44 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-yellow-400/10 blur-[180px]" />
 
         <div className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[180px]" />
-
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
-
         <div className="text-center">
-
           <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-5 py-2 text-yellow-400">
-
             <Sparkles size={16} />
 
             Course Plans
-
           </div>
 
           <h2 className="mt-8 text-5xl md:text-6xl font-black text-white">
-
             Choose Your
-
             <span className="block bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
-
               Learning Plan
-
             </span>
-
           </h2>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-zinc-400">
-
             Learn Stock Market from beginner to professional with recorded
             courses, mentorship and lifetime support.
-
           </p>
-
-          
-
         </div>
 
         <div className="mt-20 grid gap-8 lg:grid-cols-3">
-                    {/* ========================= */}
+          {/* ========================= */}
           {/* Basic Plan */}
           {/* ========================= */}
 
           <div className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-3 hover:border-zinc-500 hover:shadow-[0_0_45px_rgba(255,255,255,.08)]">
-
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800 text-white">
               <Star size={30} />
             </div>
@@ -208,7 +202,6 @@ const { data } = await axios.post(
             </h3>
 
             <div className="mt-6 flex items-end gap-2">
-
               <span className="text-5xl font-black text-white">
                 ₹999
               </span>
@@ -216,13 +209,11 @@ const { data } = await axios.post(
               <span className="pb-2 text-zinc-400">
                 One Time
               </span>
-
             </div>
 
             <div className="my-8 h-px bg-white/10" />
 
             <div className="space-y-4">
-
               <div className="flex items-center gap-3">
                 <Check size={18} className="text-green-400" />
                 <span className="text-zinc-300">
@@ -243,7 +234,6 @@ const { data } = await axios.post(
                   Coming Soon
                 </span>
               </div>
-
             </div>
 
             <button
@@ -252,7 +242,6 @@ const { data } = await axios.post(
             >
               Coming Soon
             </button>
-
           </div>
 
           {/* ========================= */}
@@ -260,7 +249,6 @@ const { data } = await axios.post(
           {/* ========================= */}
 
           <div className="group relative overflow-hidden rounded-[32px] border border-yellow-400 bg-gradient-to-b from-yellow-400/15 to-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-4 hover:shadow-[0_0_70px_rgba(250,204,21,.35)]">
-
             <div className="absolute right-6 top-6 rounded-full bg-yellow-400 px-4 py-2 text-sm font-bold text-black">
               🔥 MOST POPULAR
             </div>
@@ -274,11 +262,7 @@ const { data } = await axios.post(
             </h3>
 
             <div className="mt-6">
-
-              
-
               <div className="flex items-end gap-2">
-
                 <span className="text-5xl font-black text-yellow-400">
                   ₹6999
                 </span>
@@ -286,17 +270,12 @@ const { data } = await axios.post(
                 <span className="pb-2 text-zinc-400">
                   One Time
                 </span>
-
               </div>
-
-              
-
             </div>
 
             <div className="my-8 h-px bg-white/10" />
 
             <div className="space-y-4">
-
               <div className="flex items-center gap-3">
                 <Check size={18} className="text-green-400" />
                 <span className="text-zinc-300">
@@ -324,24 +303,22 @@ const { data } = await axios.post(
                   Free Future Updates
                 </span>
               </div>
-
             </div>
 
             <button
               onClick={() => handlePayment(6999)}
-              className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-yellow-400 py-4 text-lg font-bold text-black transition-all duration-300 hover:scale-[1.03] hover:bg-yellow-300"
+              className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-yellow-400 py-4 text-lg font-bold text-black transition-all duration-300 hover:scale-[1.03] hover:bg-yellow-300 cursor-pointer"
             >
               Buy Now
               <ArrowRight size={20} />
             </button>
-
           </div>
-                    {/* ========================= */}
+
+          {/* ========================= */}
           {/* Pro Plan */}
           {/* ========================= */}
 
           <div className="group relative overflow-hidden rounded-[32px] border border-green-500/40 bg-gradient-to-b from-green-500/10 to-white/5 p-8 backdrop-blur-xl transition-all duration-500 hover:-translate-y-3 hover:shadow-[0_0_60px_rgba(34,197,94,.20)]">
-
             <div className="absolute right-6 top-6 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white">
               BEST VALUE
             </div>
@@ -355,11 +332,7 @@ const { data } = await axios.post(
             </h3>
 
             <div className="mt-6">
-
-              
-
               <div className="flex items-end gap-2">
-
                 <span className="text-5xl font-black text-green-400">
                   ₹9999
                 </span>
@@ -367,17 +340,12 @@ const { data } = await axios.post(
                 <span className="pb-2 text-zinc-400">
                   One Time
                 </span>
-
               </div>
-
-              
-
             </div>
 
             <div className="my-8 h-px bg-white/10" />
 
             <div className="space-y-4">
-
               <div className="flex items-center gap-3">
                 <Check size={18} className="text-green-400" />
                 <span className="text-zinc-300">
@@ -387,41 +355,36 @@ const { data } = await axios.post(
 
               <div className="flex items-center gap-3">
                 <Check size={18} className="text-green-400" />
-                <span className="text-zinc-300">
-                  Live Mentorship
+                <span className="text-zinc-300 font-semibold text-yellow-300">
+                  Free 1 Year VIP Membership
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 <Check size={18} className="text-green-400" />
                 <span className="text-zinc-300">
-                  Portfolio Review
+                  Live Mentorship & Live Classes
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 <Check size={18} className="text-green-400" />
                 <span className="text-zinc-300">
-                  Priority Support
+                  Portfolio Review & Priority Support
                 </span>
               </div>
-
             </div>
 
             <button
               onClick={() => handlePayment(9999)}
-              className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-[1.03] hover:bg-green-400"
+              className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-[1.03] hover:bg-green-400 cursor-pointer"
             >
               Buy Now
               <ArrowRight size={20} />
             </button>
-
           </div>
-
         </div>
-
       </div>
-
     </section>
   );
 }

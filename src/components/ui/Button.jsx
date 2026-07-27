@@ -10,7 +10,7 @@ export default function Button({
   ...props
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-300 active:scale-95 disabled:opacity-60 disabled:pointer-events-none";
+    "inline-flex items-center justify-center gap-2 rounded-2xl font-black transition-all duration-300 active:scale-95 disabled:opacity-60 disabled:pointer-events-none cursor-pointer";
 
   const variants = {
     primary:
@@ -20,21 +20,21 @@ export default function Button({
       "border border-yellow-400 bg-transparent text-yellow-400 hover:bg-yellow-400 hover:text-black",
 
     ghost:
-      "bg-zinc-900 text-white hover:bg-zinc-800",
+      "bg-zinc-900 text-white hover:bg-zinc-800 border border-white/5",
 
     danger:
       "bg-red-600 text-white hover:bg-red-500",
   };
 
   const sizes = {
-    sm: "h-10 px-5 text-sm",
-    md: "h-12 px-6 text-base",
-    lg: "h-14 px-8 text-lg",
+    sm: "h-10 px-5 text-xs",
+    md: "h-12 px-6 text-xs sm:text-sm",
+    lg: "h-14 px-8 text-sm sm:text-base",
   };
 
   return (
     <button
-      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${base} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
       disabled={loading}
       {...props}
     >

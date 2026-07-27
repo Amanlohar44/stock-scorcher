@@ -29,7 +29,7 @@ const indianIndices = {
   SENSEX: "BSE:SENSEX",
 };
 
-// Crypto
+// Crypto Pairs
 const cryptoPairs = [
   "BTCUSDT",
   "ETHUSDT",
@@ -42,7 +42,7 @@ const cryptoPairs = [
   "AVAXUSDT",
 ];
 
-// Forex
+// Forex Pairs
 const forexPairs = {
   USDINR: "FX_IDC:USDINR",
   EURUSD: "FX:EURUSD",
@@ -61,9 +61,11 @@ const commodities = {
 };
 
 export default function getTradingViewSymbol(symbol) {
-  if (!symbol) return "NASDAQ:AAPL";
+  if (!symbol || typeof symbol !== "string") return "NASDAQ:AAPL";
 
-  const s = symbol.toUpperCase().trim();
+  const s = symbol.trim().toUpperCase();
+
+  if (!s) return "NASDAQ:AAPL";
 
   // Indian Stocks
   if (indianStocks.includes(s)) {
@@ -90,6 +92,6 @@ export default function getTradingViewSymbol(symbol) {
     return commodities[s];
   }
 
-  // Default US Stocks
+  // Default US Stocks & Global Fallback
   return `NASDAQ:${s}`;
 }

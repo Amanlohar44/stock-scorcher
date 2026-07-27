@@ -1,4 +1,5 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import React from "react";
+import { ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
@@ -10,40 +11,38 @@ export default function HeroLeft() {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
-      className="flex-1"
+      className="flex-1 text-left"
     >
       <Badge color="gold">
-        <Sparkles size={16} className="mr-2" />
-        India's AI Trading Platform
+        <Sparkles size={16} className="mr-2 text-yellow-400 animate-pulse" />
+        Institutional-Grade AI Trading Ecosystem
       </Badge>
 
-      <h1 className="mt-8 text-5xl font-black leading-[1.05] sm:text-6xl xl:text-7xl">
-        Trade Smarter
+      <h1 className="mt-8 text-4xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-[1.05]">
+        Trade with <span className="text-white">Absolute Precision</span>
 
-        <span className="mt-3 block bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
-          Stock • Crypto • Forex
+        <span className="mt-2 block bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">
+          Stocks • Crypto • Forex
         </span>
 
-        <span className="mt-3 block">
-          Powered by AI
+        <span className="mt-2 block text-zinc-300 text-3xl sm:text-5xl font-extrabold">
+          Powered by Advanced AI.
         </span>
       </h1>
 
-      <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-400">
-        Learn trading, analyze markets with Artificial Intelligence,
-        manage your portfolio and master Stocks, Crypto & Forex
-        — all from one powerful platform.
+      <p className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-zinc-400 font-light">
+        Combine institutional price action mastery with real-time quantitative AI intelligence. Master the markets, scale your portfolio, and trade like a pro.
       </p>
 
-      {/* Hero Buttons */}
-      <div className="mt-10 flex flex-wrap gap-4">
+      {/* Hero Action Buttons */}
+      <div className="mt-10 flex flex-wrap items-center gap-4">
 
-        {/* Start Learning → Courses / Pricing */}
-        <Link to="/#pricing">
+        {/* Start Learning → Courses */}
+        <Link to="/courses">
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-3 text-base font-bold text-black transition-all duration-300 hover:scale-105 hover:bg-yellow-300"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-yellow-400 px-8 py-4 text-sm font-extrabold text-black transition-all duration-300 hover:scale-105 hover:bg-yellow-300 shadow-[0_0_25px_rgba(250,204,21,0.3)] cursor-pointer"
           >
-            Start Learning
+            Explore Masterclass
             <ArrowRight size={18} />
           </button>
         </Link>
@@ -51,29 +50,28 @@ export default function HeroLeft() {
         {/* Become Premium → Membership */}
         <Link to="/membership">
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-base font-bold text-white transition-all duration-300 hover:scale-105 hover:border-yellow-400 hover:text-yellow-400"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-bold text-white transition-all duration-300 hover:scale-105 hover:border-yellow-400 hover:text-yellow-400 cursor-pointer"
           >
-            Become Premium
+            Unlock VIP Signals
             <ArrowRight size={18} />
           </button>
         </Link>
 
       </div>
 
+      {/* Feature Trust Badges */}
       <div className="mt-10 flex flex-wrap gap-3">
-
         <Badge color="green">
-          ✔ AI Signals
+          ⚡ Live AI Scanners
         </Badge>
 
         <Badge color="blue">
-          📈 Live Markets
+          📊 Quantitative Edge
         </Badge>
 
         <Badge>
-          🎓 Trading Courses
+          🎓 Pro Mentorship
         </Badge>
-
       </div>
 
     </motion.div>

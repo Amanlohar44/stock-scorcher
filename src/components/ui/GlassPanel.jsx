@@ -23,27 +23,24 @@ export default function GlassPanel({
         group
         relative
         overflow-hidden
-        rounded-[30px]
-        border border-white/10
-        bg-white/[0.04]
+        rounded-3xl
+        border border-yellow-500/25
+        bg-zinc-950/80
         backdrop-blur-3xl
-        shadow-[0_20px_80px_rgba(0,0,0,.45)]
+        shadow-[0_20px_80px_rgba(0,0,0,0.5)]
         ${className}
       `}
     >
-      {/* Animated Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 via-transparent to-blue-500/5 opacity-70 transition duration-500 group-hover:opacity-100" />
+      {/* Animated Gold/Yellow Gradient Accent */}
+      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-transparent to-yellow-600/5 opacity-60 transition duration-500 group-hover:opacity-100 pointer-events-none" />
 
-      {/* Top Shine */}
-      <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+      {/* Top Shine Highlight */}
+      <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent pointer-events-none" />
 
-      {/* Left Glow */}
-      <div className="absolute -left-20 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-yellow-400/10 blur-3xl" />
+      {/* Ambient Glow Effects */}
+      <div className="absolute -left-20 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
 
-      {/* Right Glow */}
-      <div className="absolute -right-20 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-blue-500/10 blur-3xl" />
-
-      {/* Content */}
+      {/* Content Container */}
       <div className="relative z-10">
         {children}
       </div>

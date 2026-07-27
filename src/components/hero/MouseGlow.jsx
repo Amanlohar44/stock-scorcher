@@ -1,31 +1,34 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
 
 export default function MouseGlow() {
-  const [position, setPosition] = useState({
-    x: 0,
-    y: 0,
-  });
+  const glowRef = useRef(null);
 
   useEffect(() => {
-    const move = (e) => {
-      setPosition({
-        x: e.clientX,
-        y: e.clientY,
-      });
+    let animationFrameId = null;
+
+    const handleMouseMove = (e) => {
+      if (glowRef.current) {
+        // Use requestAnimationFrame for smooth, GPU-accelerated cursor tracking without re-renders
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        
+        animationFrameId = requestAnimationFrame(() => {
+          glowRef.current.style.transform = `translate3d(${e.clientX - 175}px, ${e.clientY - 175}px, 0)`;
+        });
+      }
     };
 
-    window.addEventListener("mousemove", move);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
 
-    return () => window.removeEventListener("mousemove", move);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   return (
     <div
-      className="pointer-events-none fixed z-0 h-[350px] w-[350px] rounded-full bg-yellow-400/10 blur-[120px] transition-all duration-300"
-      style={{
-        left: position.x - 175,
-        top: position.y - 175,
-      }}
+      ref={glowRef}
+      className="pointer-events-none fixed top-0 left-0 z-0 h-[350px] w-[350px] rounded-full bg-yellow-400/10 blur-[120px] will-change-transform"
     />
   );
 }

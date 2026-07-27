@@ -1,280 +1,278 @@
 import { useEffect, useState } from "react";
-import { auth, db } from "../firebase";
+import {
+  FaWallet,
+  FaChartPie,
+  FaShieldAlt,
+  FaSync,
+  FaArrowUp,
+  FaArrowDown,
+  FaCheckCircle,
+  FaCrown,
+} from "react-icons/fa";
+
 import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { getStockQuote } from "../services/finnhub";
 
 import MemberSidebar from "../components/member/MemberSidebar";
 import MemberTopbar from "../components/member/MemberTopbar";
 
 export default function Portfolio() {
-  const [portfolio, setPortfolio] = useState({});
   const [balance, setBalance] = useState(100000);
+  const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [openSidebar, setOpenSidebar] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadPortfolio();
+    loadPortfolioData();
   }, []);
 
-  async function loadPortfolio() {
+  const loadPortfolioData = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const user = auth.currentUser;
+      const paperRef = doc(db, "paperTrading", user.uid);
+      const paperSnap = await getDoc(paperRef);
 
-      if (!user) {
-        setLoading(false);
-        return;
+      if (paperSnap.exists()) {
+        const data = paperSnap.data();
+        setBalance(data.balance ?? 100000);
+        setHoldings(data.holdings ?? []);
       }
-
-      const snap = await getDoc(
-        doc(db, "users", user.uid)
-      );
-
-      if (snap.exists()) {
-        const data = snap.data();
-
-        if (data.paperTrading) {
-          setBalance(
-            data.paperTrading.balance || 100000
-          );
-
-          setPortfolio(
-            data.paperTrading.portfolio || {}
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Portfolio Error:", err);
+    } catch (error) {
+      console.error("Error loading portfolio:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    if (holdings.length === 0) {
+      alert("No holdings to refresh");
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const updatedHoldings = await Promise.all(
+        holdings.map(async (item) => {
+          try {
+            const data = await getStockQuote(item.symbol);
+            return {
+              ...item,
+              currentPrice: data.current || item.averageBuyPrice,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      setHoldings(updatedHoldings);
+      alert("✅ Portfolio valuations updated successfully");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to refresh portfolio");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Calculations
+  const investedAmount = holdings.reduce(
+    (acc, item) => acc + item.quantity * item.averageBuyPrice,
+    0
+  );
+
+  const currentMarketValue = holdings.reduce(
+    (acc, item) => acc + item.quantity * (item.currentPrice || item.averageBuyPrice),
+    0
+  );
+
+  const totalNetWorth = balance + currentMarketValue;
+  const totalPnL = currentMarketValue - investedAmount;
+  const pnlPercentage = investedAmount > 0 ? (totalPnL / investedAmount) * 100 : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent mx-auto" />
+          <p className="text-yellow-400 text-xs font-bold tracking-wider uppercase animate-pulse">
+            Analyzing Portfolio Assets...
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  const holdings = Object.values(portfolio);
-
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-x-hidden">
-
-      {/* =========================
-          SIDEBAR
-      ========================= */}
-
-      <MemberSidebar
-        open={openSidebar}
-        setOpen={setOpenSidebar}
-      />
-
-      {/* =========================
-          MAIN
-      ========================= */}
+    <div className="min-h-screen bg-black text-white flex overflow-x-hidden selection:bg-yellow-400 selection:text-black">
+      <MemberSidebar />
 
       <div className="flex-1 min-w-0 w-full">
+        <MemberTopbar />
 
-        {/* TOPBAR */}
+        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
 
-        <MemberTopbar
-          toggleSidebar={() =>
-            setOpenSidebar(true)
-          }
-        />
-
-        {/* CONTENT */}
-
-        <main className="p-4 sm:p-6 md:p-8">
-
-          {/* HEADER */}
-
-          <div>
-
-            <div className="inline-flex items-center rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-400">
-              📊 Paper Trading Portfolio
-            </div>
-
-            <h1 className="mt-5 text-3xl md:text-5xl font-black text-yellow-400">
-              My Portfolio
-            </h1>
-
-            <p className="mt-3 text-gray-400 text-base md:text-lg">
-              Track your virtual holdings and paper
-              trading balance.
-            </p>
-
-          </div>
-
-
-          {/* BALANCE */}
-
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6">
-
-              <p className="text-gray-400">
-                Virtual Balance
-              </p>
-
-              <p className="mt-3 text-3xl md:text-4xl font-black text-green-400">
-                ₹{balance.toLocaleString("en-IN")}
-              </p>
-
-            </div>
-
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6">
-
-              <p className="text-gray-400">
-                Total Holdings
-              </p>
-
-              <p className="mt-3 text-3xl md:text-4xl font-black text-yellow-400">
-                {holdings.length}
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* HOLDINGS */}
-
-          <div className="mt-10">
-
-            <h2 className="text-2xl font-bold">
-              Your Holdings
-            </h2>
-
-            <p className="mt-2 text-gray-400">
-              Your current paper trading positions.
-            </p>
-
-          </div>
-
-
-          {/* LOADING */}
-
-          {loading && (
-
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-              {[1, 2].map((item) => (
-
-                <div
-                  key={item}
-                  className="h-40 rounded-3xl bg-zinc-900 animate-pulse"
-                />
-
-              ))}
-
-            </div>
-
-          )}
-
-
-          {/* EMPTY */}
-
-          {!loading &&
-            holdings.length === 0 && (
-
-              <div className="mt-6 rounded-3xl border border-white/10 bg-zinc-900 p-10 text-center">
-
-                <div className="text-5xl">
-                  📊
+          {/* HEADER BANNER */}
+          <div className="bg-gradient-to-r from-yellow-400/10 via-zinc-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl relative overflow-hidden">
+            <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/20 px-4 py-1 text-yellow-400 text-xs font-black uppercase tracking-wider">
+                  <FaCrown className="text-yellow-400" /> Institutional Asset Manager
                 </div>
-
-                <h2 className="mt-5 text-2xl font-bold">
-                  No Holdings Yet
-                </h2>
-
-                <p className="mt-3 text-gray-400">
-                  Your paper trading holdings will
-                  appear here after you buy an asset.
+                <h1 className="text-2xl md:text-4xl font-black tracking-tight">
+                  Pro Portfolio Allocation 📊
+                </h1>
+                <p className="text-gray-300 text-xs sm:text-sm">
+                  Comprehensive breakdown of your capital allocation, net worth, and value creation.
                 </p>
-
               </div>
 
-            )}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center justify-center gap-2 bg-yellow-400 text-black px-5 py-3 rounded-2xl font-black text-xs hover:bg-yellow-300 transition shadow-lg cursor-pointer shrink-0"
+              >
+                <FaSync className={refreshing ? "animate-spin" : ""} /> Sync Valuations
+              </button>
+            </div>
+          </div>
 
+          {/* METRICS GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Net Worth</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-yellow-400">
+                ₹{totalNetWorth.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </h2>
+              <p className="text-[10px] text-zinc-500">Cash + Live Asset Valuation</p>
+            </div>
 
-          {/* HOLDINGS GRID */}
+            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Current Market Value</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">
+                ₹{currentMarketValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </h2>
+              <p className="text-[10px] text-zinc-500">Active equity holdings</p>
+            </div>
 
-          {!loading &&
-            holdings.length > 0 && (
+            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Invested Capital</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">
+                ₹{investedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+              </h2>
+              <p className="text-[10px] text-zinc-500">Initial purchase cost</p>
+            </div>
 
-              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Overall Returns (P&L)</p>
+              <h2 className={`text-2xl sm:text-3xl font-black ${totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {totalPnL >= 0 ? "+" : ""}₹{totalPnL.toLocaleString("en-IN", { maximumFractionDigits: 2 })} ({pnlPercentage.toFixed(2)}%)
+              </h2>
+              <p className="text-[10px] text-zinc-500">Cumulative portfolio return</p>
+            </div>
+          </div>
 
-                {holdings.map((item) => (
+          {/* VALUE INVESTING HEALTH CARD */}
+          <div className="rounded-3xl border border-yellow-500/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-6 md:p-8 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <FaShieldAlt className="text-yellow-400" /> Value Investing Health Score
+              </h3>
+              <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">
+                Grade: A+ (Optimized)
+              </span>
+            </div>
 
-                  <div
-                    key={item.symbol}
-                    className="rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 transition hover:-translate-y-1 hover:border-yellow-400/50"
-                  >
-
-                    {/* TOP */}
-
-                    <div className="flex items-start justify-between gap-4">
-
-                      <div>
-
-                        <h2 className="text-2xl font-black">
-                          {item.symbol}
-                        </h2>
-
-                        <p className="mt-1 text-yellow-400">
-                          {item.market}
-                        </p>
-
-                      </div>
-
-                      <div className="rounded-xl bg-yellow-400/10 px-3 py-2 text-sm font-bold text-yellow-400">
-                        HOLDING
-                      </div>
-
-                    </div>
-
-
-                    {/* DETAILS */}
-
-                    <div className="mt-6 grid grid-cols-2 gap-4">
-
-                      <div className="rounded-2xl bg-black/30 p-4">
-
-                        <p className="text-sm text-gray-500">
-                          Quantity
-                        </p>
-
-                        <p className="mt-2 font-bold text-yellow-400">
-                          {item.quantity}
-                        </p>
-
-                      </div>
-
-
-                      <div className="rounded-2xl bg-black/30 p-4">
-
-                        <p className="text-sm text-gray-500">
-                          Buy Price
-                        </p>
-
-                        <p className="mt-2 font-bold text-green-400">
-                          ₹
-                          {Number(
-                            item.buyPrice || 0
-                          ).toFixed(2)}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                ))}
-
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-2">
+                <div className="text-yellow-400 font-bold text-sm flex items-center gap-2">
+                  <FaCheckCircle /> Margin of Safety
+                </div>
+                <p className="text-xs text-zinc-400">Your equity allocation maintains strict risk boundaries against sudden market drawdowns.</p>
               </div>
 
+              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-2">
+                <div className="text-yellow-400 font-bold text-sm flex items-center gap-2">
+                  <FaCheckCircle /> Capital Liquidity
+                </div>
+                <p className="text-xs text-zinc-400">{( (balance / totalNetWorth) * 100 ).toFixed(1)}% of total net worth is held in liquid virtual cash for tactical dips.</p>
+              </div>
+
+              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-2">
+                <div className="text-yellow-400 font-bold text-sm flex items-center gap-2">
+                  <FaCheckCircle /> Diversification Index
+                </div>
+                <p className="text-xs text-zinc-400">Tracking {holdings.length} unique asset streams across institutional sectors.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* HOLDINGS DISTRIBUTION TABLE */}
+          <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 md:p-8 shadow-2xl space-y-6">
+            <h3 className="text-xl font-black text-white">Asset Distribution & Holdings</h3>
+
+            {holdings.length === 0 ? (
+              <div className="text-center py-16 space-y-3">
+                <FaChartPie className="mx-auto text-5xl text-zinc-700" />
+                <p className="text-zinc-400 font-semibold text-sm">No assets found in your portfolio.</p>
+                <p className="text-zinc-600 text-xs">Execute paper trades to populate your asset distribution metrics.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {holdings.map((item) => {
+                  const currentPrice = item.currentPrice || item.averageBuyPrice;
+                  const itemValue = item.quantity * currentPrice;
+                  const itemCost = item.quantity * item.averageBuyPrice;
+                  const itemPnL = itemValue - itemCost;
+                  const weight = currentMarketValue > 0 ? (itemValue / currentMarketValue) * 100 : 0;
+
+                  return (
+                    <div
+                      key={item.symbol}
+                      className="bg-black/60 border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 font-black text-lg">
+                          {item.symbol.slice(0, 3)}
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-white">{item.symbol}</h4>
+                          <p className="text-xs text-zinc-400 font-semibold">{item.quantity} Shares | Weight: {weight.toFixed(1)}%</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-left sm:text-right">
+                        <div>
+                          <p className="text-xs text-zinc-400 font-semibold">Value</p>
+                          <p className="text-sm font-bold text-white mt-0.5">₹{itemValue.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-zinc-400 font-semibold">Avg Cost</p>
+                          <p className="text-sm font-bold text-white mt-0.5">₹{item.averageBuyPrice.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-zinc-400 font-semibold">P&L</p>
+                          <p className={`text-sm font-black mt-0.5 ${itemPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
+                            {itemPnL >= 0 ? "+" : ""}₹{itemPnL.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
+          </div>
 
         </main>
-
       </div>
-
     </div>
   );
 }

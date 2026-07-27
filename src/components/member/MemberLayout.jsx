@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import MemberSidebar from "./MemberSidebar";
 import MemberTopbar from "./MemberTopbar";
 
@@ -7,35 +6,31 @@ export default function MemberLayout({ children }) {
   const [openSidebar, setOpenSidebar] = useState(false);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-black text-white">
-
+    <div className="min-h-screen overflow-x-hidden bg-black text-white selection:bg-yellow-400 selection:text-black">
       <div className="flex min-h-screen">
 
-        {/* Sidebar */}
+        {/* Responsive Sidebar */}
         <MemberSidebar
           open={openSidebar}
           setOpen={setOpenSidebar}
         />
 
-        {/* Main Area */}
+        {/* Main Content Area */}
         <div className="flex min-w-0 flex-1 flex-col">
 
-          {/* Topbar */}
+          {/* Topbar Navigation */}
           <MemberTopbar
-            toggleSidebar={() =>
-              setOpenSidebar(true)
-            }
+            toggleSidebar={() => setOpenSidebar(true)}
           />
 
-          {/* Page Content */}
-          <main className="min-w-0 flex-1">
+          {/* Main Workspace Children */}
+          <main className="min-w-0 flex-1 p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto w-full">
             {children}
           </main>
 
         </div>
 
       </div>
-
     </div>
   );
 }

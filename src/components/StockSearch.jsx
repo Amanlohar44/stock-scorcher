@@ -674,21 +674,25 @@ export default function StockSearch() {
   // =========================
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto">
+    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
 
       {/* =========================
           SEARCH
       ========================= */}
 
-      <div className="rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 shadow-2xl md:p-10">
+      <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-2xl">
 
-        <h2 className="text-center text-3xl font-bold text-yellow-400">
-          AI Market Search
-        </h2>
-
-        <p className="mt-3 text-center text-gray-400">
-          Search Stocks, Crypto and Forex markets.
-        </p>
+        <div className="text-center space-y-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/10 px-4 py-1.5 text-xs font-black text-yellow-400 uppercase tracking-widest">
+            AI Market Scanner
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-black text-yellow-400 tracking-tight">
+            AI Market Search
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 font-medium">
+            Search Stocks, Crypto, and Forex markets with real-time institutional intelligence.
+          </p>
+        </div>
 
         <div className="mt-8 flex flex-col gap-4 md:flex-row">
 
@@ -707,21 +711,22 @@ export default function StockSearch() {
               }
             }}
             placeholder="Example: AAPL, BTC, EURUSD"
-            className="flex-1 rounded-xl border border-zinc-700 bg-black px-5 py-4 text-lg outline-none transition focus:border-yellow-400"
+            className="flex-1 rounded-2xl border border-yellow-500/25 bg-zinc-900/90 px-5 py-4 text-sm sm:text-base font-semibold text-white placeholder:text-zinc-500 outline-none transition focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/15"
           />
 
           <button
+            type="button"
             onClick={
               handleSearch
             }
             disabled={loading}
-            className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-8 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-yellow-400 hover:bg-yellow-500 px-8 py-4 font-black text-xs sm:text-sm uppercase tracking-wider text-black transition shadow-xl shadow-yellow-400/20 active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
           >
-            <Search size={20} />
+            <Search size={18} />
 
             {loading
               ? "Searching..."
-              : "Search"}
+              : "Search Market"}
           </button>
 
         </div>
@@ -729,14 +734,11 @@ export default function StockSearch() {
         {/* Loading */}
 
         {loading && (
-          <div className="mt-10 text-center">
-
-            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent" />
-
-            <p className="mt-4 text-gray-400">
+          <div className="mt-10 text-center py-8">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent shadow-lg" />
+            <p className="mt-4 text-xs sm:text-sm font-semibold tracking-widest uppercase text-zinc-400 animate-pulse">
               Fetching live market data...
             </p>
-
           </div>
         )}
 
@@ -745,86 +747,69 @@ export default function StockSearch() {
         {!loading &&
           stock && (
 
-            <div className="mt-10 grid grid-cols-2 gap-5 lg:grid-cols-3">
+            <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
 
-              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                <p className="text-sm text-gray-400">
+              <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Current Price
                 </p>
-
-                <h2 className="mt-2 text-3xl font-bold text-green-400">
+                <h3 className="mt-2 text-2xl sm:text-3xl font-black text-green-400 tracking-tight">
                   {formatPrice(
                     stock.current
                   )}
-                </h2>
-
+                </h3>
               </div>
 
-              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                <p className="text-sm text-gray-400">
+              <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Day High
                 </p>
-
-                <h2 className="mt-2 text-3xl font-bold">
+                <h3 className="mt-2 text-2xl sm:text-3xl font-black text-white tracking-tight">
                   {formatPrice(
                     stock.high
                   )}
-                </h2>
-
+                </h3>
               </div>
 
-              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                <p className="text-sm text-gray-400">
+              <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Day Low
                 </p>
-
-                <h2 className="mt-2 text-3xl font-bold">
+                <h3 className="mt-2 text-2xl sm:text-3xl font-black text-white tracking-tight">
                   {formatPrice(
                     stock.low
                   )}
-                </h2>
-
+                </h3>
               </div>
 
-              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                <p className="text-sm text-gray-400">
+              <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Previous Close
                 </p>
-
-                <h2 className="mt-2 text-3xl font-bold">
+                <h3 className="mt-2 text-2xl sm:text-3xl font-black text-white tracking-tight">
                   {formatPrice(
                     stock.previousClose
                   )}
-                </h2>
-
+                </h3>
               </div>
 
-              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                <p className="text-sm text-gray-400">
+              <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Open
                 </p>
-
-                <h2 className="mt-2 text-3xl font-bold">
+                <h3 className="mt-2 text-2xl sm:text-3xl font-black text-white tracking-tight">
                   {formatPrice(
                     stock.open
                   )}
-                </h2>
-
+                </h3>
               </div>
 
-              <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                <p className="text-sm text-gray-400">
+              <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   % Change
                 </p>
-
-                <h2
-                  className={`mt-2 text-3xl font-bold ${
+                <h3
+                  className={`mt-2 text-2xl sm:text-3xl font-black tracking-tight ${
                     Number(
                       stock.percent
                     ) >= 0
@@ -836,8 +821,7 @@ export default function StockSearch() {
                     stock.percent
                   )}
                   %
-                </h2>
-
+                </h3>
               </div>
 
             </div>
@@ -852,7 +836,7 @@ export default function StockSearch() {
 
       {company && (
 
-        <div className="mt-10 rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 md:p-8">
+        <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-2xl">
 
           <div className="flex flex-col items-center gap-6 md:flex-row">
 
@@ -863,64 +847,59 @@ export default function StockSearch() {
                   company.name ||
                   searchedSymbol
                 }
-                className="h-20 w-20 rounded-full bg-white p-2 object-contain"
+                className="h-20 w-20 rounded-2xl bg-white p-2.5 object-contain shadow-xl"
               />
             )}
 
-            <div className="text-center md:text-left">
-
-              <h2 className="text-3xl font-bold text-yellow-400">
+            <div className="text-center md:text-left space-y-2 flex-1">
+              <h3 className="text-2xl sm:text-3xl font-black text-yellow-400 tracking-tight">
                 {company.name ||
                   searchedSymbol}
-              </h2>
+              </h3>
 
-              <p className="mt-2 text-gray-400">
+              <p className="text-xs sm:text-sm font-semibold text-zinc-400 uppercase tracking-widest">
                 {company.ticker ||
                   searchedSymbol}
               </p>
 
-              <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs sm:text-sm pt-4 border-t border-white/5">
 
-                <div>
-                  <span className="text-gray-500">
+                <div className="bg-zinc-900/50 p-3.5 rounded-2xl border border-white/5">
+                  <span className="text-zinc-500 font-bold block uppercase text-[10px]">
                     Exchange
                   </span>
-
-                  <p className="font-semibold">
+                  <p className="font-black text-white mt-1">
                     {company.exchange ||
                       "N/A"}
                   </p>
                 </div>
 
-                <div>
-                  <span className="text-gray-500">
+                <div className="bg-zinc-900/50 p-3.5 rounded-2xl border border-white/5">
+                  <span className="text-zinc-500 font-bold block uppercase text-[10px]">
                     Country
                   </span>
-
-                  <p className="font-semibold">
+                  <p className="font-black text-white mt-1">
                     {company.country ||
                       "N/A"}
                   </p>
                 </div>
 
-                <div>
-                  <span className="text-gray-500">
+                <div className="bg-zinc-900/50 p-3.5 rounded-2xl border border-white/5">
+                  <span className="text-zinc-500 font-bold block uppercase text-[10px]">
                     Currency
                   </span>
-
-                  <p className="font-semibold">
+                  <p className="font-black text-white mt-1">
                     {company.currency ||
                       "N/A"}
                   </p>
                 </div>
 
-                <div>
-                  <span className="text-gray-500">
+                <div className="bg-zinc-900/50 p-3.5 rounded-2xl border border-white/5">
+                  <span className="text-zinc-500 font-bold block uppercase text-[10px]">
                     Market
                   </span>
-
-                  <p className="font-semibold text-yellow-400">
-                    {market?.toUpperCase() ||
+                  <p className="font-black text-yellow-400 mt-1 uppercase">
+                    {market ||
                       "N/A"}
                   </p>
                 </div>
@@ -941,13 +920,14 @@ export default function StockSearch() {
 
       {stock && (
 
-        <div className="mt-6 flex justify-center">
+        <div className="flex justify-center">
 
           <button
+            type="button"
             onClick={
               handleAddWatchlist
             }
-            className="rounded-xl bg-yellow-400 px-6 py-3 font-bold text-black transition hover:bg-yellow-300"
+            className="rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-yellow-500/30 px-8 py-4 font-black text-xs sm:text-sm uppercase tracking-wider text-yellow-400 transition shadow-xl active:scale-95 cursor-pointer"
           >
             ⭐ Add to Watchlist
           </button>
@@ -962,25 +942,28 @@ export default function StockSearch() {
 
       {stock && (
 
-        <div className="mt-10 rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 md:p-8">
+        <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-2xl">
 
-          <h2 className="text-3xl font-bold text-yellow-400">
-            📄 Paper Trading
-          </h2>
-
-          <p className="mt-2 text-gray-400">
-            Practice trading with virtual money.
-          </p>
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/10 px-4 py-1.5 text-xs font-black text-yellow-400 uppercase tracking-widest">
+              Simulator
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black text-yellow-400 tracking-tight">
+              📄 Paper Trading
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-400 font-medium">
+              Practice professional strategies with virtual risk-free capital.
+            </p>
+          </div>
 
           {/* Balance */}
 
-          <div className="mt-6 rounded-2xl border border-green-500/20 bg-black p-5">
-
-            <p className="text-gray-400">
+          <div className="mt-8 rounded-2xl border border-green-500/25 bg-zinc-900/90 p-5 sm:p-6 shadow-xl">
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               Virtual Balance
             </p>
 
-            <h2 className="mt-2 text-3xl font-bold text-green-400">
+            <h3 className="mt-2 text-2xl sm:text-3xl font-black text-green-400 tracking-tight">
               ₹
               {Number(
                 balance
@@ -990,48 +973,38 @@ export default function StockSearch() {
                   maximumFractionDigits: 2,
                 }
               )}
-            </h2>
-
+            </h3>
           </div>
 
-          {/* Stock */}
+          {/* Stock Info */}
 
-          <div className="mt-6">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-zinc-900/50 p-4 rounded-2xl border border-white/5">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Trading Asset
+              </p>
+              <h4 className="mt-1 text-lg font-black text-white">
+                {searchedSymbol}
+              </h4>
+              <p className="mt-0.5 text-xs font-bold text-yellow-400 uppercase">
+                Market: {market}
+              </p>
+            </div>
 
-            <p className="text-gray-400">
-              Trading Asset
-            </p>
-
-            <h3 className="mt-1 text-2xl font-bold">
-              {searchedSymbol}
-            </h3>
-
-            <p className="mt-1 text-sm text-yellow-400">
-              Market:{" "}
-              {market?.toUpperCase()}
-            </p>
-
-          </div>
-
-          {/* Owned */}
-
-          <div className="mt-5">
-
-            <p className="text-gray-400">
-              You Own
-            </p>
-
-            <h3 className="mt-1 text-xl font-bold text-yellow-400">
-              {ownedQuantity} Units
-            </h3>
-
+            <div className="bg-zinc-900/50 p-4 rounded-2xl border border-white/5">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Current Holdings
+              </p>
+              <h4 className="mt-1 text-lg font-black text-yellow-400">
+                {ownedQuantity} Units
+              </h4>
+            </div>
           </div>
 
           {/* Quantity */}
 
-          <div className="mt-6">
-
-            <label className="text-gray-400">
+          <div className="mt-6 space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
               Quantity
             </label>
 
@@ -1044,20 +1017,18 @@ export default function StockSearch() {
                   e.target.value
                 )
               }
-              className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-5 py-4 text-white outline-none focus:border-yellow-400"
+              className="w-full rounded-2xl border border-yellow-500/25 bg-zinc-900 px-5 py-4 text-white text-sm sm:text-base font-semibold outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/15"
             />
-
           </div>
 
           {/* Order Value */}
 
-          <div className="mt-5">
-
-            <p className="text-gray-400">
-              Order Value
+          <div className="mt-6 bg-zinc-900/80 p-5 rounded-2xl border border-yellow-500/20">
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+              Total Order Value
             </p>
 
-            <h3 className="mt-1 text-2xl font-bold">
+            <h3 className="mt-1 text-xl sm:text-2xl font-black text-white tracking-tight">
               ₹
               {(
                 Number(
@@ -1069,26 +1040,27 @@ export default function StockSearch() {
                 )
               ).toFixed(2)}
             </h3>
-
           </div>
 
           {/* Buttons */}
 
-          <div className="mt-8 grid grid-cols-2 gap-4">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             <button
+              type="button"
               onClick={
                 handleBuy
               }
               disabled={saving}
-              className="rounded-xl bg-green-500 py-4 font-bold text-black transition hover:bg-green-400 disabled:opacity-50"
+              className="rounded-2xl bg-green-500 hover:bg-green-400 py-4 font-black text-xs sm:text-sm uppercase tracking-wider text-black transition shadow-xl shadow-green-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {saving
                 ? "Processing..."
-                : "🟢 BUY"}
+                : "🟢 BUY POSITION"}
             </button>
 
             <button
+              type="button"
               onClick={
                 handleSell
               }
@@ -1096,11 +1068,11 @@ export default function StockSearch() {
                 saving ||
                 ownedQuantity <= 0
               }
-              className="rounded-xl bg-red-500 py-4 font-bold text-white transition hover:bg-red-400 disabled:bg-zinc-700 disabled:text-gray-500"
+              className="rounded-2xl bg-red-600 hover:bg-red-500 py-4 font-black text-xs sm:text-sm uppercase tracking-wider text-white transition shadow-xl shadow-red-600/20 active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600 cursor-pointer"
             >
               {saving
                 ? "Processing..."
-                : "🔴 SELL"}
+                : "🔴 SELL POSITION"}
             </button>
 
           </div>
@@ -1115,34 +1087,41 @@ export default function StockSearch() {
 
       {stock && (
 
-        <div className="mt-10 rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 md:p-8">
+        <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-2xl">
 
-          <h2 className="mb-8 text-3xl font-bold text-yellow-400">
-            🤖 AI Market Analysis
-          </h2>
+          <div className="mb-8 space-y-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/10 px-4 py-1.5 text-xs font-black text-yellow-400 uppercase tracking-widest">
+              Neural Engine
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black text-yellow-400 tracking-tight">
+              🤖 AI Market Analysis
+            </h3>
+            <p className="text-xs sm:text-sm text-zinc-400 font-medium">
+              Advanced institutional algorithmic indicators and risk matrix.
+            </p>
+          </div>
 
           {/* TradingView */}
 
           {tradingViewSymbol && (
-            <TradingViewChart
-              symbol={
-                tradingViewSymbol
-              }
-            />
+            <div className="rounded-2xl overflow-hidden border border-yellow-500/20 shadow-2xl bg-black mb-8">
+              <TradingViewChart
+                symbol={
+                  tradingViewSymbol
+                }
+              />
+            </div>
           )}
 
           {/* AI Loading */}
 
           {aiLoading && (
 
-            <div className="mt-8 rounded-2xl border border-yellow-500/20 bg-black p-8 text-center">
-
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent" />
-
-              <p className="mt-4 text-gray-400">
-                AI is analyzing market data...
+            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900/80 p-8 text-center backdrop-blur-xl">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent shadow-lg" />
+              <p className="mt-4 text-xs sm:text-sm font-semibold tracking-widest uppercase text-zinc-400 animate-pulse">
+                AI is analyzing market indicators...
               </p>
-
             </div>
 
           )}
@@ -1152,12 +1131,10 @@ export default function StockSearch() {
           {!aiLoading &&
             aiError && (
 
-              <div className="mt-8 rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
-
-                <p className="font-semibold text-red-400">
+              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center backdrop-blur-xl">
+                <p className="font-bold text-red-400 text-xs sm:text-sm">
                   {aiError}
                 </p>
-
               </div>
 
             )}
@@ -1168,99 +1145,88 @@ export default function StockSearch() {
             !aiError &&
             aiResult && (
 
-              <div className="mt-8 grid gap-8 md:grid-cols-2">
+              <div className="grid gap-8 lg:grid-cols-2">
 
-                {/* SIGNAL */}
+                {/* SIGNAL & LEVELS */}
 
-                <div>
+                <div className="space-y-6">
 
-                  <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                    <h3
-                      className={`text-4xl font-bold ${
+                  <div className="rounded-2xl border border-yellow-500/25 bg-zinc-900/90 p-6 backdrop-blur-xl shadow-xl space-y-4">
+                    <h4
+                      className={`text-3xl sm:text-4xl font-black tracking-tight ${
                         aiResult.signal ===
                         "BUY"
                           ? "text-green-400"
                           : aiResult.signal ===
-                            "SELL"
-                          ? "text-red-400"
-                          : "text-yellow-400"
+                              "SELL"
+                            ? "text-red-400"
+                            : "text-yellow-400"
                       }`}
                     >
                       {aiResult.signal ||
                         "HOLD"}
-                    </h3>
+                    </h4>
 
-                    <p className="mt-4 text-gray-300">
+                    <div className="pt-2 border-t border-white/5 space-y-2 text-xs sm:text-sm font-semibold text-zinc-300">
+                      <p className="flex justify-between">
+                        <span className="text-zinc-400">Confidence Score:</span>
+                        <span className="font-black text-green-400">
+                          {aiResult?.confidence || 0}%
+                        </span>
+                      </p>
 
-                      Confidence:
-
-                      <span className="font-bold text-green-400">
-                        {" "}
-                        {aiResult?.confidence || 0}%
-                      </span>
-
-                    </p>
-
-                    <p className="mt-2 text-gray-300">
-
-                      Risk:
-
-                      <span className="font-bold text-yellow-400">
-                        {" "}
-                        {aiResult.risk ||
-                          "-"}
-                      </span>
-
-                    </p>
-
+                      <p className="flex justify-between">
+                        <span className="text-zinc-400">Risk Assessment:</span>
+                        <span className="font-black text-yellow-400">
+                          {aiResult.risk || "-"}
+                        </span>
+                      </p>
+                    </div>
                   </div>
 
                   {/* LEVELS */}
 
-                  <div className="mt-6 rounded-2xl border border-yellow-500/20 bg-black p-6">
+                  <div className="rounded-2xl border border-yellow-500/25 bg-zinc-900/90 p-6 backdrop-blur-xl shadow-xl space-y-4">
+                    <h4 className="text-lg font-black text-yellow-400 tracking-tight">
+                      AI Key Levels & Indicators
+                    </h4>
 
-                    <h3 className="mb-4 text-xl font-bold text-yellow-400">
-                      AI Levels
-                    </h3>
-
-                    <div className="space-y-3 text-gray-300">
-
-                      <p>
-                        📍 Support:{" "}
-                        <span className="text-green-400">
+                    <div className="space-y-3 text-xs sm:text-sm font-semibold text-zinc-300">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">📍 Support:</span>
+                        <span className="font-black text-green-400">
                           {aiResult.support ??
                             "N/A"}
                         </span>
                       </p>
 
-                      <p>
-                        📍 Resistance:{" "}
-                        <span className="text-red-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">📍 Resistance:</span>
+                        <span className="font-black text-red-400">
                           {aiResult.resistance ??
                             "N/A"}
                         </span>
                       </p>
 
-                      <p>
-                        🎯 Target:{" "}
-                        <span className="text-yellow-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">🎯 Target:</span>
+                        <span className="font-black text-yellow-400">
                           {aiResult.target ??
                             "N/A"}
                         </span>
                       </p>
 
-                      <p>
-                        🛑 Stop Loss:{" "}
-                        <span className="text-orange-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">🛑 Stop Loss:</span>
+                        <span className="font-black text-orange-400">
                           {aiResult.stopLoss ??
                             "N/A"}
                         </span>
                       </p>
 
-                      <p>
-                        📊 RSI:{" "}
-                        <span className="text-cyan-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">📊 RSI (14):</span>
+                        <span className="font-black text-cyan-400">
                           {aiResult.rsi !==
                             undefined
                             ? Number(
@@ -1272,9 +1238,9 @@ export default function StockSearch() {
                         </span>
                       </p>
 
-                      <p>
-                        📈 EMA20:{" "}
-                        <span className="text-blue-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">📈 EMA 20:</span>
+                        <span className="font-black text-blue-400">
                           {aiResult.ema20 !==
                             undefined
                             ? Number(
@@ -1286,9 +1252,9 @@ export default function StockSearch() {
                         </span>
                       </p>
 
-                      <p>
-                        📉 EMA50:{" "}
-                        <span className="text-purple-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">📉 EMA 50:</span>
+                        <span className="font-black text-purple-400">
                           {aiResult.ema50 !==
                             undefined
                             ? Number(
@@ -1300,9 +1266,9 @@ export default function StockSearch() {
                         </span>
                       </p>
 
-                      <p>
-                        ⚡ MACD:{" "}
-                        <span className="text-pink-400">
+                      <p className="flex justify-between p-2.5 rounded-xl bg-black/40 border border-white/5">
+                        <span className="text-zinc-400">⚡ MACD Signal:</span>
+                        <span className="font-black text-pink-400 uppercase">
                           {aiResult.macd
                             ?.signal ||
                             "N/A"}
@@ -1319,17 +1285,15 @@ export default function StockSearch() {
 
                 <div>
 
-                  <div className="rounded-2xl border border-yellow-500/20 bg-black p-6">
-
-                    <h3 className="mb-4 text-xl font-bold text-yellow-400">
-                      AI Reasons
-                    </h3>
+                  <div className="rounded-2xl border border-yellow-500/25 bg-zinc-900/90 p-6 backdrop-blur-xl shadow-xl h-full space-y-4">
+                    <h4 className="text-lg font-black text-yellow-400 tracking-tight">
+                      AI Technical Rationale
+                    </h4>
 
                     {aiResult.reasons
                       ?.length > 0 ? (
 
-                      <ul className="space-y-3 text-gray-300">
-
+                      <ul className="space-y-3.5 text-xs sm:text-sm font-medium text-zinc-300">
                         {aiResult.reasons.map(
                           (
                             reason,
@@ -1340,20 +1304,19 @@ export default function StockSearch() {
                               key={
                                 index
                               }
-                              className="leading-6"
+                              className="flex items-start gap-3 p-3 rounded-xl bg-black/40 border border-white/5 leading-relaxed"
                             >
-                              ✅{" "}
-                              {reason}
+                              <span className="text-yellow-400 shrink-0 font-black">✅</span>
+                              <span>{reason}</span>
                             </li>
 
                           )
                         )}
-
                       </ul>
 
                     ) : (
 
-                      <p className="text-gray-500">
+                      <p className="text-xs text-zinc-500 font-semibold">
                         No detailed reasons available.
                       </p>
 

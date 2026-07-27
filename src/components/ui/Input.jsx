@@ -4,9 +4,9 @@ export default function Input({
   ...props
 }) {
   return (
-    <div className="relative">
+    <div className="relative w-full">
       {icon && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-yellow-400/70 transition-colors pointer-events-none text-base">
           {icon}
         </div>
       )}
@@ -17,19 +17,23 @@ export default function Input({
           w-full
           rounded-2xl
           border
-          border-white/10
-          bg-white/5
+          border-yellow-500/25
+          bg-zinc-950/90
           px-5
           ${icon ? "pl-12" : ""}
           text-white
           placeholder:text-zinc-500
-          backdrop-blur-xl
+          text-xs
+          sm:text-sm
+          font-medium
+          backdrop-blur-2xl
           outline-none
           transition-all
           duration-300
           focus:border-yellow-400
-          focus:ring-2
-          focus:ring-yellow-400/20
+          focus:ring-4
+          focus:ring-yellow-400/15
+          shadow-inner
           ${className}
         `}
         {...props}

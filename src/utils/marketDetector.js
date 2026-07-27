@@ -1,5 +1,13 @@
 export default function marketDetector(symbol = "") {
+  if (!symbol || typeof symbol !== "string") {
+    return "us-stock";
+  }
+
   const s = symbol.toUpperCase().trim();
+
+  if (!s) {
+    return "us-stock";
+  }
 
   // Crypto
   if (
@@ -58,6 +66,6 @@ export default function marketDetector(symbol = "") {
     return "indian-stock";
   }
 
-  // Default
+  // Default Fallback
   return "us-stock";
 }

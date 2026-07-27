@@ -5,8 +5,14 @@ const API_KEY = import.meta.env.VITE_FINNHUB_API_KEY;
 // =========================
 
 export async function getStockQuote(symbol) {
+  if (!symbol || typeof symbol !== "string") {
+    throw new Error("Invalid symbol provided");
+  }
+
+  const cleanSymbol = symbol.trim().toUpperCase();
+
   const res = await fetch(
-    `https://finnhub.io/api/v1/quote?symbol=${symbol.toUpperCase()}&token=${API_KEY}`
+    `https://finnhub.io/api/v1/quote?symbol=${cleanSymbol}&token=${API_KEY}`
   );
 
   if (!res.ok) {
@@ -32,8 +38,14 @@ export async function getStockQuote(symbol) {
 // =========================
 
 export async function getCompanyProfile(symbol) {
+  if (!symbol || typeof symbol !== "string") {
+    throw new Error("Invalid symbol provided");
+  }
+
+  const cleanSymbol = symbol.trim().toUpperCase();
+
   const res = await fetch(
-    `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${API_KEY}`
+    `https://finnhub.io/api/v1/stock/profile2?symbol=${cleanSymbol}&token=${API_KEY}`
   );
 
   if (!res.ok) {

@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 
 const ticker = [
@@ -20,7 +21,6 @@ const ticker = [
 export default function MarketTicker() {
   return (
     <div className="relative overflow-hidden border-y border-white/10 bg-white/[0.03] backdrop-blur-2xl">
-
       <motion.div
         animate={{ x: ["0%", "-50%"] }}
         transition={{
@@ -33,13 +33,13 @@ export default function MarketTicker() {
         {[...ticker, ...ticker].map((item, index) => (
           <div
             key={index}
-            className="flex items-center gap-3 px-8 py-3"
+            className="flex items-center gap-3 px-8 py-3 text-sm tracking-wide"
           >
-            <span className="text-zinc-500">
+            <span className="text-zinc-600 text-[10px]">
               ●
             </span>
 
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-zinc-300">
               {item.name}
             </span>
 
@@ -49,7 +49,6 @@ export default function MarketTicker() {
           </div>
         ))}
       </motion.div>
-
     </div>
   );
 }

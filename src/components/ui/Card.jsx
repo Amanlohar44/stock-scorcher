@@ -10,36 +10,34 @@ export default function Card({
       whileHover={
         hover
           ? {
-              y: -8,
-              scale: 1.02,
+              y: -6,
+              scale: 1.01,
             }
           : {}
       }
       transition={{
         duration: 0.3,
+        ease: "easeOut",
       }}
       className={`
         relative
         overflow-hidden
-        rounded-[28px]
-        border border-white/10
-        bg-white/5
+        rounded-3xl
+        border border-yellow-500/25
+        bg-zinc-950/90
         backdrop-blur-2xl
-        shadow-[0_10px_60px_rgba(0,0,0,.45)]
+        shadow-[0_10px_40px_rgba(0,0,0,0.6)]
+        p-6 sm:p-8
         ${className}
       `}
     >
-      {/* Glow */}
-      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 via-transparent to-blue-500/5" />
+      {/* Background Ambient Glow */}
+      <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
 
-      {/* Border Glow */}
-      <div className="absolute inset-0 rounded-[28px] ring-1 ring-white/5" />
-
-      {/* Content */}
+      {/* Content Layer */}
       <div className="relative z-10">
         {children}
       </div>
-
     </motion.div>
   );
 }

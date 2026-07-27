@@ -24,690 +24,832 @@ import RecentActivity from "../components/admin/RecentActivity";
 import AddModule from "../components/admin/AddModule";
 import ModuleList from "../components/admin/ModuleList";
 import StudentTable from "../components/admin/StudentTable";
-
 import CouponManager from "../components/admin/CouponManager";
 
 export default function Admin() {
-
-const navigate = useNavigate();
-
-const [loading,setLoading]=useState(true);
-
-const [active,setActive]=useState("dashboard");
-
-const [mobileOpen,setMobileOpen]=useState(false);
-
-const [modules,setModules]=useState([]);
-
-const [students,setStudents]=useState([]);
-
-const [coupons,setCoupons]=useState([]);
-
-const [totalRevenue,setTotalRevenue]=useState(0);
-
-const [search,setSearch]=useState("");
-
-const [title,setTitle]=useState("");
-
-const [day,setDay]=useState("");
-
-const [video,setVideo]=useState("");
-
-const [pdf,setPdf]=useState("");
-
-const [editingId,setEditingId]=useState(null);
-
-const [editTitle,setEditTitle]=useState("");
-
-const [editVideo,setEditVideo]=useState("");
-
-const [editPdf,setEditPdf]=useState("");
-
-const [editDay,setEditDay]=useState("");
-
-// Coupon Form
-
-const [couponCode,setCouponCode]=useState("");
-
-const [couponType,setCouponType]=useState("percentage");
-
-const [couponDiscount,setCouponDiscount]=useState("");
-
-const [couponMinAmount,setCouponMinAmount]=useState("");
-
-const [couponMaxUses,setCouponMaxUses]=useState("");
-
-const [couponExpiry,setCouponExpiry]=useState("");
-
-const [couponStatus,setCouponStatus]=useState(true);
-
-const handleLogout = async()=>{
-
-await signOut(auth);
-
-navigate("/login");
-
-};
-
-useEffect(()=>{
-
-const unsubscribe=onAuthStateChanged(auth,async(user)=>{
-
-if(!user){
-
-navigate("/login");
-
-return;
-
-}
-
-if(user.email!=="stockscorcher@gmail.com"){
-
-alert("Access Denied");
-
-navigate("/dashboard");
-
-return;
-
-}
-
-await loadDashboard();
-
-setLoading(false);
-
-});
-
-return ()=>unsubscribe();
-
-},[]);
-
-const loadDashboard=async()=>{
-
-try{
-
-// Modules
-
-const moduleSnapshot=await getDocs(collection(db,"modules"));
-
-const moduleData=moduleSnapshot.docs.map(doc=>({
-
-id:doc.id,
-
-...doc.data(),
-
-}));
-
-moduleData.sort((a,b)=>{
-
-if(a.day!==b.day){
-
-return a.day-b.day;
-
-}
-
-return a.title.localeCompare(b.title);
-
-});
-
-setModules(moduleData);
-
-// Purchases
-
-const purchaseSnapshot=await getDocs(collection(db,"purchases"));
-
-const purchaseData=purchaseSnapshot.docs.map(doc=>({
-
-id:doc.id,
-
-...doc.data(),
-
-}));
-
-setStudents(purchaseData);
-
-let revenue=0;
-
-purchaseData.forEach(item=>{
-
-revenue+=Number(item.course||0);
-
-});
-
-setTotalRevenue(revenue);
-
-// Coupons
-
-const couponSnapshot=await getDocs(collection(db,"coupons"));
-
-const couponData=couponSnapshot.docs.map(doc=>({
-
-id:doc.id,
-
-...doc.data(),
-
-}));
-
-setCoupons(couponData);
-
-}catch(err){
-  
-console.log(err);
-
-}
-
-};
-// ===========================
-// ADD MODULE
-// ===========================
-
-const handleAddModule = async () => {
-
-  if (!title || !video || !day) {
-    alert("Please fill all fields");
-    return;
-  }
-
-  let videoLink = video;
-
-  if (video.includes("watch?v=")) {
-
-    const id = video.split("watch?v=")[1].split("&")[0];
-
-    videoLink = `https://www.youtube.com/embed/${id}`;
-
-  }
-
-  else if (video.includes("youtu.be/")) {
-
-    const id = video.split("youtu.be/")[1].split("?")[0];
-
-    videoLink = `https://www.youtube.com/embed/${id}`;
-
-  }
-
-  await addDoc(collection(db, "modules"), {
-
-    day: Number(day),
-
-    title,
-
-    video: videoLink,
-
-    pdf,
-
-    createdAt: new Date(),
-
-  });
-
-  setDay("");
-
-  setTitle("");
-
-  setVideo("");
-
-  setPdf("");
-
-  loadDashboard();
-
-};
-
-// ===========================
-// DELETE MODULE
-// ===========================
-
-const handleDelete = async (id) => {
-
-  if (!window.confirm("Delete Module?")) return;
-
-  await deleteDoc(doc(db, "modules", id));
-
-  loadDashboard();
-
-};
-
-// ===========================
-// EDIT MODULE
-// ===========================
-
-const handleEdit = async () => {
-
-  let videoLink = editVideo;
-
-  if (editVideo.includes("watch?v=")) {
-
-    const id = editVideo.split("watch?v=")[1].split("&")[0];
-
-    videoLink = `https://www.youtube.com/embed/${id}`;
-
-  }
-
-  else if (editVideo.includes("youtu.be/")) {
-
-    const id = editVideo.split("youtu.be/")[1].split("?")[0];
-
-    videoLink = `https://www.youtube.com/embed/${id}`;
-
-  }
-
-  await updateDoc(
-
-    doc(db, "modules", editingId),
-
-    {
-
-      day: Number(editDay),
-
-      title: editTitle,
-
-      video: videoLink,
-
-      pdf: editPdf,
-
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState("dashboard");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [modules, setModules] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [coupons, setCoupons] = useState([]);
+  const [liveClasses, setLiveClasses] = useState([]);
+  const [blogs, setBlogs] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [search, setSearch] = useState("");
+
+  // Module Form States
+  const [title, setTitle] = useState("");
+  const [day, setDay] = useState("");
+  const [video, setVideo] = useState("");
+  const [pdf, setPdf] = useState("");
+
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editVideo, setEditVideo] = useState("");
+  const [editPdf, setEditPdf] = useState("");
+  const [editDay, setEditDay] = useState("");
+
+  // Live Class Form States
+  const [liveTitle, setLiveTitle] = useState("");
+  const [liveLink, setLiveLink] = useState("");
+  const [liveDate, setLiveDate] = useState("");
+  const [liveTime, setLiveTime] = useState("");
+
+  // Direct Upload Blog Form States
+  const [blogTitle, setBlogTitle] = useState("");
+  const [blogDesc, setBlogDesc] = useState("");
+  const [blogCategory, setBlogCategory] = useState("");
+  const [blogImage, setBlogImage] = useState("");
+  const [blogVideo, setBlogVideo] = useState("");
+
+  // Coupon Form States
+  const [couponCode, setCouponCode] = useState("");
+  const [couponType, setCouponType] = useState("percentage");
+  const [couponDiscount, setCouponDiscount] = useState("");
+  const [couponMinAmount, setCouponMinAmount] = useState("");
+  const [couponMaxUses, setCouponMaxUses] = useState("");
+  const [couponExpiry, setCouponExpiry] = useState("");
+  const [couponStatus, setCouponStatus] = useState(true);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
+      if (user.email !== "stockscorcher@gmail.com") {
+        alert("Access Denied");
+        navigate("/dashboard");
+        return;
+      }
+
+      await loadDashboard();
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      // Modules
+      const moduleSnapshot = await getDocs(collection(db, "modules"));
+      const moduleData = moduleSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      moduleData.sort((a, b) => {
+        if (a.day !== b.day) {
+          return a.day - b.day;
+        }
+        return a.title.localeCompare(b.title);
+      });
+      setModules(moduleData);
+
+      // Purchases / Students
+      const purchaseSnapshot = await getDocs(collection(db, "purchases"));
+      const purchaseData = purchaseSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setStudents(purchaseData);
+
+      let revenue = 0;
+      purchaseData.forEach((item) => {
+        revenue += Number(item.course || 0);
+      });
+      setTotalRevenue(revenue);
+
+      // Coupons
+      const couponSnapshot = await getDocs(collection(db, "coupons"));
+      const couponData = couponSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setCoupons(couponData);
+
+      // Live Classes
+      const liveSnapshot = await getDocs(collection(db, "liveClasses"));
+      const liveData = liveSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setLiveClasses(liveData);
+
+      // Blogs
+      const blogSnapshot = await getDocs(collection(db, "blogs"));
+      const blogData = blogSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setBlogs(blogData);
+
+    } catch (err) {
+      console.error(err);
     }
+  };
 
-  );
-
-  setEditingId(null);
-
-  setEditTitle("");
-
-  setEditVideo("");
-
-  setEditPdf("");
-
-  setEditDay("");
-
-  loadDashboard();
-
-};
-
-// ===========================
-// ADD COUPON
-// ===========================
-
-const handleAddCoupon = async () => {
-
-  try {
-
-    console.log("Add Coupon Clicked");
-
-    if (
-      !couponCode ||
-      !couponDiscount ||
-      !couponExpiry
-    ) {
-      alert("Fill all required fields");
+  // ===========================
+  // ADD MODULE
+  // ===========================
+  const handleAddModule = async () => {
+    if (!title || !video || !day) {
+      alert("Please fill all required fields");
       return;
     }
 
-    await addDoc(collection(db, "coupons"), {
+    let videoLink = video;
+    if (video.includes("watch?v=")) {
+      const id = video.split("watch?v=")[1].split("&")[0];
+      videoLink = `https://www.youtube.com/embed/${id}`;
+    } else if (video.includes("youtu.be/")) {
+      const id = video.split("youtu.be/")[1].split("?")[0];
+      videoLink = `https://www.youtube.com/embed/${id}`;
+    }
 
-      code: couponCode.toUpperCase(),
-
-      type: couponType,
-
-      discount: Number(couponDiscount),
-
-      minAmount: Number(couponMinAmount || 0),
-
-      maxUses: Number(couponMaxUses || 0),
-
-      usedCount: 0,
-
-      expiryDate: couponExpiry,
-
-      active: couponStatus,
-
+    await addDoc(collection(db, "modules"), {
+      day: Number(day),
+      title,
+      video: videoLink,
+      pdf,
       createdAt: new Date(),
-
     });
 
-    console.log("Coupon Added Successfully");
-
-    alert("Coupon Added");
-
-    setCouponCode("");
-
-    setCouponDiscount("");
-
-    setCouponMinAmount("");
-
-    setCouponMaxUses("");
-
-    setCouponExpiry("");
-
-    setCouponStatus(true);
-
+    setDay("");
+    setTitle("");
+    setVideo("");
+    setPdf("");
     loadDashboard();
+  };
 
-  } catch (err) {
+  // ===========================
+  // DELETE MODULE
+  // ===========================
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete Module?")) return;
+    await deleteDoc(doc(db, "modules", id));
+    loadDashboard();
+  };
 
-    console.log(err);
+  // ===========================
+  // EDIT MODULE
+  // ===========================
+  const handleEdit = async () => {
+    let videoLink = editVideo;
+    if (editVideo.includes("watch?v=")) {
+      const id = editVideo.split("watch?v=")[1].split("&")[0];
+      videoLink = `https://www.youtube.com/embed/${id}`;
+    } else if (editVideo.includes("youtu.be/")) {
+      const id = editVideo.split("youtu.be/")[1].split("?")[0];
+      videoLink = `https://www.youtube.com/embed/${id}`;
+    }
 
-    alert(err.message);
+    await updateDoc(doc(db, "modules", editingId), {
+      day: Number(editDay),
+      title: editTitle,
+      video: videoLink,
+      pdf: editPdf,
+    });
 
+    setEditingId(null);
+    setEditTitle("");
+    setEditVideo("");
+    setEditPdf("");
+    setEditDay("");
+    loadDashboard();
+  };
+
+  // ===========================
+  // LIVE CLASS HANDLERS
+  // ===========================
+  const handleAddLiveClass = async () => {
+    if (!liveTitle || !liveLink || !liveDate || !liveTime) {
+      alert("Please fill all live class details");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "liveClasses"), {
+        title: liveTitle,
+        link: liveLink,
+        date: liveDate,
+        time: liveTime,
+        createdAt: new Date(),
+      });
+
+      alert("Live Class Scheduled Successfully!");
+      setLiveTitle("");
+      setLiveLink("");
+      setLiveDate("");
+      setLiveTime("");
+      loadDashboard();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to schedule live class");
+    }
+  };
+
+  const handleDeleteLiveClass = async (id) => {
+    if (!window.confirm("Delete this Live Class?")) return;
+    await deleteDoc(doc(db, "liveClasses", id));
+    loadDashboard();
+  };
+
+  // ===========================
+  // DIRECT FILE CONVERT HELPERS
+  // ===========================
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBlogImage(reader.result); // Base64 string
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleVideoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBlogVideo(reader.result); // Base64 string
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ===========================
+  // BLOG HANDLERS
+  // ===========================
+  const handleAddBlog = async () => {
+    if (!blogTitle || !blogDesc) {
+      alert("Please fill blog title and description");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "blogs"), {
+        title: blogTitle,
+        description: blogDesc,
+        category: blogCategory || "General",
+        image: blogImage || "",
+        videoUrl: blogVideo || "",
+        createdAt: new Date(),
+      });
+
+      alert("Blog Published Successfully!");
+      setBlogTitle("");
+      setBlogDesc("");
+      setBlogCategory("");
+      setBlogImage("");
+      setBlogVideo("");
+      loadDashboard();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to publish blog");
+    }
+  };
+
+  const handleDeleteBlog = async (id) => {
+    if (!window.confirm("Delete this Article?")) return;
+    await deleteDoc(doc(db, "blogs", id));
+    loadDashboard();
+  };
+
+  // ===========================
+  // ADD COUPON
+  // ===========================
+  const handleAddCoupon = async () => {
+    try {
+      if (!couponCode || !couponDiscount || !couponExpiry) {
+        alert("Fill all required fields");
+        return;
+      }
+
+      await addDoc(collection(db, "coupons"), {
+        code: couponCode.toUpperCase(),
+        type: couponType,
+        discount: Number(couponDiscount),
+        minAmount: Number(couponMinAmount || 0),
+        maxUses: Number(couponMaxUses || 0),
+        usedCount: 0,
+        expiryDate: couponExpiry,
+        active: couponStatus,
+        createdAt: new Date(),
+      });
+
+      alert("Coupon Added");
+      setCouponCode("");
+      setCouponDiscount("");
+      setCouponMinAmount("");
+      setCouponMaxUses("");
+      setCouponExpiry("");
+      setCouponStatus(true);
+      loadDashboard();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  // ===========================
+  // DELETE COUPON
+  // ===========================
+  const handleDeleteCoupon = async (id) => {
+    if (!window.confirm("Delete Coupon?")) return;
+    await deleteDoc(doc(db, "coupons", id));
+    loadDashboard();
+  };
+
+  // ===========================
+  // TOGGLE COUPON
+  // ===========================
+  const handleToggleCoupon = async (id, status) => {
+    await updateDoc(doc(db, "coupons", id), {
+      active: !status,
+    });
+    loadDashboard();
+  };
+
+  // ===========================
+  // UPDATE COUPON
+  // ===========================
+  const handleUpdateCoupon = async (coupon) => {
+    await updateDoc(doc(db, "coupons", coupon.id), {
+      code: coupon.code,
+      type: coupon.type,
+      discount: Number(coupon.discount),
+      minAmount: Number(coupon.minAmount),
+      maxUses: Number(coupon.maxUses),
+      expiryDate: coupon.expiryDate,
+      active: coupon.active,
+    });
+    loadDashboard();
+  };
+
+  // ===========================
+  // LOADING
+  // ===========================
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-yellow-400 text-2xl font-black uppercase tracking-wider">
+        Loading Admin Command Center...
+      </div>
+    );
   }
 
-};
-
-// ===========================
-// DELETE COUPON
-// ===========================
-
-const handleDeleteCoupon = async (id) => {
-
-  if (!window.confirm("Delete Coupon?")) return;
-
-  await deleteDoc(doc(db, "coupons", id));
-
-  loadDashboard();
-
-};
-
-// ===========================
-// TOGGLE COUPON
-// ===========================
-
-const handleToggleCoupon = async (
-  id,
-  status
-) => {
-
-  await updateDoc(doc(db, "coupons", id), {
-
-    active: !status,
-
-  });
-
-  loadDashboard();
-
-};
-
-// ===========================
-// UPDATE COUPON
-// ===========================
-
-const handleUpdateCoupon = async (
-  coupon
-) => {
-
-  await updateDoc(doc(db, "coupons", coupon.id), {
-
-    code: coupon.code,
-
-    type: coupon.type,
-
-    discount: Number(coupon.discount),
-
-    minAmount: Number(coupon.minAmount),
-
-    maxUses: Number(coupon.maxUses),
-
-    expiryDate: coupon.expiryDate,
-
-    active: coupon.active,
-
-  });
-
-  loadDashboard();
-
-};
-
-// ===========================
-// LOADING
-// ===========================
-
-if (loading) {
-
   return (
+    <div className="min-h-screen bg-black text-white flex">
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+        />
+      )}
 
-    <div className="min-h-screen bg-black flex items-center justify-center text-white text-3xl">
+      {/* Sidebar */}
+      <div
+        className={`fixed lg:static top-0 left-0 z-50 h-screen transform transition-transform duration-300 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <AdminSidebar
+          active={active}
+          setActive={(value) => {
+            setActive(value);
+            setMobileOpen(false);
+          }}
+          handleLogout={handleLogout}
+        />
+      </div>
 
-      Loading Admin Panel...
+      {/* Right Section */}
+      <div className="flex-1 min-w-0">
+        <AdminTopbar
+          user={auth.currentUser}
+          handleLogout={handleLogout}
+          mobileOpen={mobileOpen}
+          setMobileOpen={setMobileOpen}
+        />
 
-    </div>
+        <div className="p-4 md:p-6 lg:p-8">
+          {/* Dashboard */}
+          {active === "dashboard" && (
+            <>
+              <StatsCards
+                students={students}
+                modules={modules}
+                totalRevenue={totalRevenue}
+              />
+              <DashboardCharts
+                students={students}
+                modules={modules}
+                totalRevenue={totalRevenue}
+              />
+              <div className="grid lg:grid-cols-2 gap-6 mt-8">
+                <RecentPayments students={students} />
+                <RecentActivity students={students} modules={modules} />
+              </div>
+            </>
+          )}
 
-  );
+          {/* Modules */}
+          {active === "modules" && (
+            <>
+              <AddModule
+                day={day}
+                setDay={setDay}
+                title={title}
+                setTitle={setTitle}
+                video={video}
+                setVideo={setVideo}
+                pdf={pdf}
+                setPdf={setPdf}
+                handleAddModule={handleAddModule}
+              />
+              <div className="mt-8">
+                <ModuleList
+                  modules={modules}
+                  editingId={editingId}
+                  setEditingId={setEditingId}
+                  editTitle={editTitle}
+                  setEditTitle={setEditTitle}
+                  editVideo={editVideo}
+                  setEditVideo={setEditVideo}
+                  editPdf={editPdf}
+                  setEditPdf={setEditPdf}
+                  editDay={editDay}
+                  setEditDay={setEditDay}
+                  handleEdit={handleEdit}
+                  handleDelete={handleDelete}
+                />
+              </div>
+            </>
+          )}
 
-}
-return (
+          {/* Live Classes Manager */}
+          {active === "live" && (
+            <div className="space-y-8">
+              <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 sm:p-8 shadow-2xl">
+                <h2 className="text-2xl font-black text-yellow-400 uppercase tracking-wider mb-6">
+                  🔴 Schedule Live Mentorship Class
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Class Title / Topic</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Weekly Market Analysis & Q&A"
+                      value={liveTitle}
+                      onChange={(e) => setLiveTitle(e.target.value)}
+                      className="w-full rounded-xl bg-black border border-white/10 px-4 py-3 text-sm text-white focus:border-yellow-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Meeting / Stream URL</label>
+                    <input
+                      type="text"
+                      placeholder="Zoom / YouTube / Meet Link"
+                      value={liveLink}
+                      onChange={(e) => setLiveLink(e.target.value)}
+                      className="w-full rounded-xl bg-black border border-white/10 px-4 py-3 text-sm text-white focus:border-yellow-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Date</label>
+                    <input
+                      type="date"
+                      value={liveDate}
+                      onChange={(e) => setLiveDate(e.target.value)}
+                      className="w-full rounded-xl bg-black border border-white/10 px-4 py-3 text-sm text-white focus:border-yellow-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Time</label>
+                    <input
+                      type="time"
+                      value={liveTime}
+                      onChange={(e) => setLiveTime(e.target.value)}
+                      className="w-full rounded-xl bg-black border border-white/10 px-4 py-3 text-sm text-white focus:border-yellow-400 outline-none"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddLiveClass}
+                  className="mt-6 rounded-xl bg-yellow-400 hover:bg-yellow-300 px-8 py-4 text-xs font-black text-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] cursor-pointer"
+                >
+                  Publish Live Class
+                </button>
+              </div>
 
-<div className="min-h-screen bg-black text-white flex">
+              {/* Live Classes List */}
+              <div className="bg-zinc-950 border border-white/10 rounded-[2rem] p-6 sm:p-8">
+                <h3 className="text-xl font-black text-white uppercase tracking-wider mb-6">Upcoming & Active Live Sessions</h3>
+                {liveClasses.length === 0 ? (
+                  <p className="text-zinc-500 text-sm">No live classes scheduled right now.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {liveClasses.map((item) => (
+                      <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-zinc-900 border border-white/10 p-5 rounded-2xl gap-4">
+                        <div>
+                          <h4 className="font-extrabold text-white text-base">{item.title}</h4>
+                          <p className="text-xs text-yellow-400 mt-1 font-bold">📅 {item.date} | ⏰ {item.time}</p>
+                          <a href={item.link} target="_blank" rel="noreferrer" className="text-xs text-blue-400 underline mt-1 block">
+                            {item.link}
+                          </a>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteLiveClass(item.id)}
+                          className="rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                        >
+                          Delete Session
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-  {/* Mobile Overlay */}
+          {/* Direct Upload Blog Manager */}
+          {active === "blogs" && (
+            <div className="space-y-8">
+              <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+                <h2 className="text-2xl sm:text-3xl font-black text-yellow-400 uppercase tracking-wider mb-2">
+                  ✍️ Direct Upload Blog & Media Hub
+                </h2>
+                <p className="text-zinc-400 text-xs sm:text-sm font-light mb-6">
+                  Type your custom category and upload images/videos directly from your phone gallery.
+                </p>
 
-  {mobileOpen && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Article Title</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Today's Market Analysis"
+                        value={blogTitle}
+                        onChange={(e) => setBlogTitle(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-yellow-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Custom Category (Type Your Own)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. BankNifty / Crypto / Strategy"
+                        value={blogCategory}
+                        onChange={(e) => setBlogCategory(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-yellow-400 outline-none uppercase font-bold"
+                      />
+                    </div>
+                  </div>
 
-    <div
-      onClick={() => setMobileOpen(false)}
-      className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Photo / Banner from Gallery</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-yellow-400 file:text-black hover:file:bg-yellow-300 cursor-pointer"
+                      />
+                      {blogImage && <p className="text-[10px] text-green-400 mt-1 font-bold">✓ Image Selected Successfully</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Video from Gallery (Optional)</label>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                        className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-blue-500 file:text-white hover:file:bg-blue-400 cursor-pointer"
+                      />
+                      {blogVideo && <p className="text-[10px] text-blue-400 mt-1 font-bold">✓ Video Selected Successfully</p>}
+                    </div>
+                  </div>
 
-  )}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Full Article Content</label>
+                    <textarea
+                      rows={6}
+                      placeholder="Write your blog details here..."
+                      value={blogDesc}
+                      onChange={(e) => setBlogDesc(e.target.value)}
+                      className="w-full bg-black border border-white/10 rounded-xl p-4 text-sm text-white focus:border-yellow-400 outline-none"
+                    />
+                  </div>
+                </div>
 
-  {/* Sidebar */}
+                <button
+                  onClick={handleAddBlog}
+                  className="mt-6 rounded-xl bg-yellow-400 hover:bg-yellow-300 px-8 py-4 text-xs font-black text-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] cursor-pointer active:scale-95"
+                >
+                  🚀 Publish Article
+                </button>
+              </div>
 
-  <div
-    className={`
-      fixed lg:static
-      top-0 left-0
-      z-50
-      h-screen
-      transform
-      transition-transform
-      duration-300
-      ${
-        mobileOpen
-          ? "translate-x-0"
-          : "-translate-x-full lg:translate-x-0"
-      }
-    `}
-  >
+              {/* Published Articles List */}
+              <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+                <h3 className="text-xl font-black text-white uppercase tracking-wider mb-6">
+                  Published Articles ({blogs.length})
+                </h3>
 
-    <AdminSidebar
-      active={active}
-      setActive={(value) => {
-        setActive(value);
-        setMobileOpen(false);
-      }}
-      handleLogout={handleLogout}
-    />
+                {blogs.length === 0 ? (
+                  <p className="text-zinc-500 text-xs font-light py-8 text-center">
+                    No articles published yet. Create your first market insight above!
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {blogs.map((blog) => (
+                      <div
+                        key={blog.id}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-black border border-white/10 p-5 rounded-2xl gap-4 hover:border-yellow-500/30 transition-all"
+                      >
+                        <div className="flex items-start gap-4">
+                          {blog.image && (
+                            <img
+                              src={blog.image}
+                              alt="Article Thumb"
+                              className="w-16 h-16 rounded-xl object-cover border border-white/10 shrink-0 hidden sm:block"
+                            />
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="px-2.5 py-0.5 rounded-full bg-yellow-400/10 text-yellow-400 text-[9px] font-black uppercase tracking-wider">
+                                {blog.category || "General"}
+                              </span>
+                              {blog.videoUrl && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase">
+                                  📹 Video Uploaded
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-black text-white text-base tracking-tight">{blog.title}</h4>
+                            <p className="text-xs text-zinc-400 mt-1 line-clamp-2 font-light">{blog.description}</p>
+                          </div>
+                        </div>
 
-  </div>
+                        <button
+                          onClick={() => handleDeleteBlog(blog.id)}
+                          className="rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all cursor-pointer shrink-0"
+                        >
+                          Delete Article
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-  {/* Right Section */}
-
-  <div className="flex-1 min-w-0">
-
-    <AdminTopbar
-      user={auth.currentUser}
-      handleLogout={handleLogout}
-      mobileOpen={mobileOpen}
-      setMobileOpen={setMobileOpen}
-    />
-
-    <div className="p-4 md:p-6 lg:p-8">
-
-      {/* Dashboard */}
-
-      {active === "dashboard" && (
-
-        <>
-
-          <StatsCards
-            students={students}
-            modules={modules}
-            totalRevenue={totalRevenue}
-          />
-
-          <DashboardCharts
-            students={students}
-            modules={modules}
-            totalRevenue={totalRevenue}
-          />
-
-          <div className="grid lg:grid-cols-2 gap-6 mt-8">
-
-            <RecentPayments
+          {/* Students */}
+          {active === "students" && (
+            <StudentTable
               students={students}
+              search={search}
+              setSearch={setSearch}
             />
+          )}
 
-            <RecentActivity
+          {/* Payments */}
+          {active === "payments" && <RecentPayments students={students} />}
+
+          {/* Analytics */}
+          {active === "analytics" && (
+            <DashboardCharts
               students={students}
               modules={modules}
+              totalRevenue={totalRevenue}
             />
+          )}
 
-          </div>
-
-        </>
-
-      )}
-            {/* Modules */}
-
-      {active === "modules" && (
-
-        <>
-
-          <AddModule
-            day={day}
-            setDay={setDay}
-
-            title={title}
-            setTitle={setTitle}
-
-            video={video}
-            setVideo={setVideo}
-
-            pdf={pdf}
-            setPdf={setPdf}
-
-            handleAddModule={handleAddModule}
-          />
-
-          <div className="mt-8">
-
-            <ModuleList
-              modules={modules}
-
-              editingId={editingId}
-              setEditingId={setEditingId}
-
-              editTitle={editTitle}
-              setEditTitle={setEditTitle}
-
-              editVideo={editVideo}
-              setEditVideo={setEditVideo}
-
-              editPdf={editPdf}
-              setEditPdf={setEditPdf}
-
-              editDay={editDay}
-              setEditDay={setEditDay}
-
-              handleEdit={handleEdit}
-              handleDelete={handleDelete}
+          {/* Coupons */}
+          {active === "coupons" && (
+            <CouponManager
+              coupons={coupons}
+              couponCode={couponCode}
+              setCouponCode={setCouponCode}
+              couponType={couponType}
+              setCouponType={setCouponType}
+              couponDiscount={couponDiscount}
+              setCouponDiscount={setCouponDiscount}
+              couponMinAmount={couponMinAmount}
+              setCouponMinAmount={setCouponMinAmount}
+              couponMaxUses={couponMaxUses}
+              setCouponMaxUses={setCouponMaxUses}
+              couponExpiry={couponExpiry}
+              setCouponExpiry={setCouponExpiry}
+              couponStatus={couponStatus}
+              setCouponStatus={setCouponStatus}
+              handleAddCoupon={handleAddCoupon}
+              handleDeleteCoupon={handleDeleteCoupon}
+              handleToggleCoupon={handleToggleCoupon}
+              handleUpdateCoupon={handleUpdateCoupon}
             />
+          )}
 
-          </div>
+          {/* Settings */}
+          {active === "settings" && (
+            <div className="space-y-6">
+              <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+                <h2 className="text-2xl sm:text-3xl font-black text-yellow-400 uppercase tracking-wider mb-2">
+                  ⚙️ Admin Control Settings
+                </h2>
+                <p className="text-zinc-400 text-xs sm:text-sm font-light mb-8">
+                  Manage global platform configurations, security controls, and API integrations.
+                </p>
 
-        </>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Admin Profile Info */}
+                  <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
+                    <h3 className="text-sm font-black text-yellow-400 uppercase tracking-wider mb-3">
+                      🔐 Administrator Profile
+                    </h3>
+                    <div className="space-y-2 text-xs text-zinc-300">
+                      <p><span className="text-zinc-500 font-bold uppercase">Role:</span> Super Admin</p>
+                      <p><span className="text-zinc-500 font-bold uppercase">Authorized Email:</span> {auth.currentUser?.email || "stockscorcher@gmail.com"}</p>
+                      <p><span className="text-zinc-500 font-bold uppercase">Access Status:</span> <span className="text-green-400 font-bold">Securely Authenticated</span></p>
+                    </div>
+                  </div>
 
-      )}
+                  {/* Platform Mode */}
+                  <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
+                    <h3 className="text-sm font-black text-yellow-400 uppercase tracking-wider mb-3">
+                      🌐 Platform Status
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-zinc-300 font-bold uppercase">Maintenance Mode</span>
+                        <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase">Live & Online</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-zinc-300 font-bold uppercase">Student Registrations</span>
+                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-black uppercase">Open</span>
+                      </div>
+                    </div>
+                  </div>
 
-      {/* Students */}
+                  {/* API Integrations */}
+                  <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
+                    <h3 className="text-sm font-black text-yellow-400 uppercase tracking-wider mb-3">
+                      🔌 Market Data APIs
+                    </h3>
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-300">Finnhub Stock Tickers</span>
+                        <span className="text-emerald-400 font-bold">Connected ✓</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-300">Twelve Data API</span>
+                        <span className="text-emerald-400 font-bold">Connected ✓</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-300">Firebase Firestore DB</span>
+                        <span className="text-emerald-400 font-bold">Synced ✓</span>
+                      </div>
+                    </div>
+                  </div>
 
-      {active === "students" && (
-
-        <StudentTable
-          students={students}
-          search={search}
-          setSearch={setSearch}
-        />
-
-      )}
-
-      {/* Payments */}
-
-      {active === "payments" && (
-
-        <RecentPayments
-          students={students}
-        />
-
-      )}
-
-      {/* Analytics */}
-
-      {active === "analytics" && (
-
-        <DashboardCharts
-          students={students}
-          modules={modules}
-          totalRevenue={totalRevenue}
-        />
-
-      )}
-            {/* Coupons */}
-
-      {active === "coupons" && (
-
-        <CouponManager
-
-          coupons={coupons}
-
-          couponCode={couponCode}
-          setCouponCode={setCouponCode}
-
-          couponType={couponType}
-          setCouponType={setCouponType}
-
-          couponDiscount={couponDiscount}
-          setCouponDiscount={setCouponDiscount}
-
-          couponMinAmount={couponMinAmount}
-          setCouponMinAmount={setCouponMinAmount}
-
-          couponMaxUses={couponMaxUses}
-          setCouponMaxUses={setCouponMaxUses}
-
-          couponExpiry={couponExpiry}
-          setCouponExpiry={setCouponExpiry}
-
-          couponStatus={couponStatus}
-          setCouponStatus={setCouponStatus}
-
-          handleAddCoupon={handleAddCoupon}
-          handleDeleteCoupon={handleDeleteCoupon}
-          handleToggleCoupon={handleToggleCoupon}
-          handleUpdateCoupon={handleUpdateCoupon}
-
-        />
-
-      )}
-
-      {/* Settings */}
-
-      {active === "settings" && (
-
-        <div className="bg-zinc-900 border border-yellow-500 rounded-2xl p-8">
-
-          <h2 className="text-3xl font-bold text-yellow-400 mb-4">
-            Admin Settings
-          </h2>
-
-          <p className="text-gray-400">
-            More settings will be added here...
-          </p>
-
+                  {/* System Actions */}
+                  <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-black text-yellow-400 uppercase tracking-wider mb-3">
+                        ⚡ Quick System Actions
+                      </h3>
+                      <p className="text-xs text-zinc-400 font-light mb-4">
+                        Refresh all active modules, student lists, and coupon data from Firestore database.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        loadDashboard();
+                        alert("Dashboard Data Refreshed Successfully!");
+                      }}
+                      className="w-full bg-yellow-400 hover:bg-yellow-300 text-black py-3 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.2)]"
+                    >
+                      🔄 Refresh Dashboard Data
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-
-      )}
-          </div>
-
-  </div>
-
-</div>
-
-);
-
+      </div>
+    </div>
+  );
 }

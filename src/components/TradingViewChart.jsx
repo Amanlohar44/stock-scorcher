@@ -61,10 +61,10 @@ export default function TradingViewChart({ symbol }) {
   }, [symbol]);
 
   return (
-    <div className="mt-8 rounded-3xl overflow-hidden border border-yellow-500/20 bg-zinc-900 p-2">
+    <div className="mt-8 rounded-3xl overflow-hidden border border-yellow-500/30 bg-zinc-950 p-3 sm:p-4 shadow-2xl backdrop-blur-2xl">
       <div
         ref={container}
-        className="w-full"
+        className="w-full rounded-2xl overflow-hidden"
         style={{
           height: "850px",
         }}

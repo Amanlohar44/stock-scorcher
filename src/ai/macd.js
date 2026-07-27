@@ -6,7 +6,7 @@
 import { calculateEMA } from "./ema";
 
 export function calculateMACD(prices) {
-  if (!prices || prices.length < 35) {
+  if (!prices || !Array.isArray(prices) || prices.length < 35) {
     return null;
   }
 
@@ -17,13 +17,10 @@ export function calculateMACD(prices) {
     return null;
   }
 
-  const macd = ema12 - ema26;
+  const macdValue = ema12 - ema26;
 
   return {
-    macd: Number(macd.toFixed(2)),
-    signal:
-      macd > 0
-        ? "Bullish"
-        : "Bearish",
+    macd: Number(macdValue.toFixed(2)),
+    signal: macdValue >= 0 ? "Bullish" : "Bearish",
   };
 }

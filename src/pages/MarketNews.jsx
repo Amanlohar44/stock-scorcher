@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   FaNewspaper,
   FaChartLine,
@@ -7,6 +7,8 @@ import {
   FaSyncAlt,
   FaExternalLinkAlt,
   FaExclamationTriangle,
+  FaSearch,
+  FaFire,
 } from "react-icons/fa";
 
 import MemberSidebar from "../components/member/MemberSidebar";
@@ -14,33 +16,15 @@ import MemberTopbar from "../components/member/MemberTopbar";
 import { getMarketNews } from "../services/finnhub";
 
 const categories = [
-  {
-    name: "All",
-    apiCategory: null,
-    icon: <FaNewspaper />,
-  },
-  {
-    name: "Stocks",
-    apiCategory: "general",
-    icon: <FaChartLine />,
-  },
-  {
-    name: "Crypto",
-    apiCategory: "crypto",
-    icon: <FaBitcoin />,
-  },
-  {
-    name: "Forex",
-    apiCategory: "forex",
-    icon: <FaDollarSign />,
-  },
+  { name: "All Feeds", apiCategory: null, icon: <FaNewspaper /> },
+  { name: "Stocks", apiCategory: "general", icon: <FaChartLine /> },
+  { name: "Crypto", apiCategory: "crypto", icon: <FaBitcoin /> },
+  { name: "Forex", apiCategory: "forex", icon: <FaDollarSign /> },
 ];
 
 function formatTime(timestamp) {
-  if (!timestamp) return "Recently";
-
+  if (!timestamp) return "Just now";
   const date = new Date(timestamp * 1000);
-
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -51,11 +35,10 @@ function formatTime(timestamp) {
 }
 
 function getCategoryLabel(category) {
-  if (category === "general") return "Stocks";
+  if (category === "general") return "Equities";
   if (category === "crypto") return "Crypto";
   if (category === "forex") return "Forex";
-
-  return "Market";
+  return "Global";
 }
 
 function NewsSkeleton() {
@@ -64,23 +47,15 @@ function NewsSkeleton() {
       {[1, 2, 3, 4].map((item) => (
         <div
           key={item}
-          className="rounded-3xl border border-yellow-500/10 bg-zinc-900 p-6 animate-pulse"
+          className="rounded-3xl border border-yellow-500/10 bg-zinc-950 p-6 animate-pulse space-y-4"
         >
           <div className="flex justify-between">
-            <div className="h-6 w-20 rounded-full bg-zinc-800" />
-            <div className="h-5 w-24 rounded bg-zinc-800" />
+            <div className="h-6 w-20 rounded-full bg-zinc-900" />
+            <div className="h-5 w-24 rounded bg-zinc-900" />
           </div>
-
-          <div className="h-7 w-4/5 rounded bg-zinc-800 mt-6" />
-
-          <div className="h-4 w-full rounded bg-zinc-800 mt-5" />
-          <div className="h-4 w-11/12 rounded bg-zinc-800 mt-3" />
-          <div className="h-4 w-3/4 rounded bg-zinc-800 mt-3" />
-
-          <div className="flex justify-between mt-8">
-            <div className="h-4 w-28 rounded bg-zinc-800" />
-            <div className="h-4 w-20 rounded bg-zinc-800" />
-          </div>
+          <div className="h-7 w-4/5 rounded bg-zinc-900" />
+          <div className="h-4 w-full rounded bg-zinc-900" />
+          <div className="h-4 w-3/4 rounded bg-zinc-900" />
         </div>
       ))}
     </div>
@@ -89,29 +64,20 @@ function NewsSkeleton() {
 
 export default function MarketNews() {
   const [openSidebar, setOpenSidebar] = useState(false);
-
-  const [activeCategory, setActiveCategory] = useState("All");
-
+  const [activeCategory, setActiveCategory] = useState("All Feeds");
   const [news, setNews] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [refreshing, setRefreshing] = useState(false);
-
   const [error, setError] = useState("");
-
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchNews = useCallback(
     async (isRefresh = false) => {
       try {
         setError("");
-
-        if (isRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
 
         const selectedCategory = categories.find(
           (category) => category.name === activeCategory
@@ -119,7 +85,7 @@ export default function MarketNews() {
 
         let finalNews = [];
 
-        if (activeCategory === "All") {
+        if (activeCategory === "All Feeds") {
           const results = await Promise.allSettled([
             getMarketNews("general"),
             getMarketNews("crypto"),
@@ -128,60 +94,39 @@ export default function MarketNews() {
 
           results.forEach((result, index) => {
             if (result.status === "fulfilled") {
-              const categoryNames = [
-                "general",
-                "crypto",
-                "forex",
-              ];
-
+              const categoryNames = ["general", "crypto", "forex"];
               const categoryName = categoryNames[index];
-
               const categoryNews = result.value.map((item) => ({
                 ...item,
                 category: categoryName,
               }));
-
               finalNews.push(...categoryNews);
             }
           });
         } else {
-          const data = await getMarketNews(
-            selectedCategory.apiCategory
-          );
-
+          const data = await getMarketNews(selectedCategory.apiCategory);
           finalNews = data.map((item) => ({
             ...item,
             category: selectedCategory.apiCategory,
           }));
         }
 
-        // Remove invalid news
-        finalNews = finalNews.filter(
-          (item) => item.headline && item.url
-        );
+        // Clean up invalid entries
+        finalNews = finalNews.filter((item) => item.headline && item.url);
 
         // Remove duplicate URLs
         const uniqueNews = Array.from(
-          new Map(
-            finalNews.map((item) => [item.url, item])
-          ).values()
+          new Map(finalNews.map((item) => [item.url, item])).values()
         );
 
-        // Latest first
-        uniqueNews.sort(
-          (a, b) => (b.datetime || 0) - (a.datetime || 0)
-        );
+        // Sort latest first
+        uniqueNews.sort((a, b) => (b.datetime || 0) - (a.datetime || 0));
 
-        // Limit news
-        setNews(uniqueNews.slice(0, 30));
-
+        setNews(uniqueNews.slice(0, 40));
         setLastUpdated(new Date());
       } catch (err) {
         console.error("Market News Error:", err);
-
-        setError(
-          "Unable to load market news right now. Please try again."
-        );
+        setError("Unable to sync financial intelligence feeds right now.");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -194,396 +139,208 @@ export default function MarketNews() {
     fetchNews();
   }, [fetchNews]);
 
-  const handleRefresh = () => {
-    fetchNews(true);
-  };
+  // Filter news based on search query
+  const filteredNews = useMemo(() => {
+    if (!searchQuery.trim()) return news;
+    return news.filter(
+      (item) =>
+        item.headline?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.source?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [news, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-x-hidden">
-
-      {/* =========================
-          SIDEBAR
-      ========================= */}
-
-      <MemberSidebar
-        open={openSidebar}
-        setOpen={setOpenSidebar}
-      />
-
-      {/* =========================
-          MAIN CONTENT
-      ========================= */}
+    <div className="min-h-screen bg-black text-white flex overflow-x-hidden selection:bg-yellow-400 selection:text-black">
+      <MemberSidebar open={openSidebar} setOpen={setOpenSidebar} />
 
       <div className="flex-1 min-w-0 w-full">
+        <MemberTopbar toggleSidebar={() => setOpenSidebar(true)} />
 
-        {/* TOPBAR */}
+        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
 
-        <MemberTopbar
-          toggleSidebar={() =>
-            setOpenSidebar(true)
-          }
-        />
-
-        {/* CONTENT */}
-
-        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto">
-
-          {/* =========================
-              HEADER
-          ========================= */}
-
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-
-            <div>
-
-              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-2 text-sm font-semibold text-yellow-400">
-                <FaNewspaper />
-
-                Premium Market News
-              </div>
-
-              <h1 className="mt-5 text-3xl md:text-5xl font-black">
-                Market News
-              </h1>
-
-              <p className="mt-3 max-w-3xl text-gray-400 text-base md:text-lg">
-                Stay updated with the latest developments
-                across Stocks, Crypto and Forex markets.
-              </p>
-
-            </div>
-
-            {/* REFRESH */}
-
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing || loading}
-              className="flex items-center justify-center gap-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-5 py-3 font-semibold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-50"
-            >
-
-              <FaSyncAlt
-                className={
-                  refreshing
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-
-              {refreshing
-                ? "Refreshing..."
-                : "Refresh News"}
-
-            </button>
-
-          </div>
-
-
-          {/* =========================
-              CATEGORY FILTER
-          ========================= */}
-
-          <div className="mt-8 flex gap-3 overflow-x-auto pb-2">
-
-            {categories.map((category) => (
-
-              <button
-                key={category.name}
-                onClick={() =>
-                  setActiveCategory(category.name)
-                }
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 font-semibold transition ${
-                  activeCategory === category.name
-                    ? "bg-yellow-400 text-black"
-                    : "border border-white/10 bg-zinc-900 text-gray-400 hover:border-yellow-400/30 hover:text-yellow-400"
-                }`}
-              >
-
-                {category.icon}
-
-                {category.name}
-
-              </button>
-
-            ))}
-
-          </div>
-
-
-          {/* =========================
-              MARKET STATUS
-          ========================= */}
-
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900 p-5">
-
-              <p className="text-gray-400 text-sm">
-                News Feed
-              </p>
-
-              <div className="flex items-center gap-2 mt-2">
-
-                <span className="h-3 w-3 rounded-full bg-green-400 animate-pulse" />
-
-                <span className="font-bold text-green-400">
-                  Live
-                </span>
-
-              </div>
-
-            </div>
-
-
-            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900 p-5">
-
-              <p className="text-gray-400 text-sm">
-                Coverage
-              </p>
-
-              <p className="mt-2 font-bold">
-                Stocks • Crypto • Forex
-              </p>
-
-            </div>
-
-
-            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-900 p-5">
-
-              <p className="text-gray-400 text-sm">
-                Last Updated
-              </p>
-
-              <p className="mt-2 font-bold text-yellow-400">
-                {lastUpdated
-                  ? lastUpdated.toLocaleTimeString(
-                      "en-IN",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )
-                  : "Loading..."}
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* =========================
-              NEWS SECTION
-          ========================= */}
-
-          <div className="mt-10">
-
-            <div className="flex items-center justify-between gap-4">
-
-              <div>
-
-                <h2 className="text-2xl font-bold">
-                  Latest Market Updates
-                </h2>
-
-                <p className="mt-2 text-gray-400">
-                  Real-time market news and important
-                  developments.
+          {/* TOP BANNER */}
+          <div className="bg-gradient-to-r from-yellow-400/10 via-zinc-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl relative overflow-hidden">
+            <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/20 px-4 py-1 text-yellow-400 text-xs font-black uppercase tracking-wider">
+                  <FaFire className="text-yellow-400" /> Institutional Financial Intelligence
+                </div>
+                <h1 className="text-2xl md:text-4xl font-black tracking-tight">
+                  Global Market News Terminal 📰
+                </h1>
+                <p className="text-gray-300 text-xs sm:text-sm max-w-2xl">
+                  Real-time algorithmic feeds tracking macroeconomics, equities, cryptocurrency movements, and forex liquidity.
                 </p>
-
               </div>
 
-            </div>
-
-
-            {/* ERROR */}
-
-            {error && !loading && (
-
-              <div className="mt-6 rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-
-                <FaExclamationTriangle className="mx-auto text-4xl text-red-400" />
-
-                <h3 className="mt-4 text-xl font-bold text-red-400">
-                  News Unavailable
-                </h3>
-
-                <p className="mt-2 text-gray-400">
-                  {error}
-                </p>
-
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={handleRefresh}
-                  className="mt-5 rounded-xl bg-yellow-400 px-5 py-3 font-bold text-black hover:bg-yellow-300"
+                  onClick={() => fetchNews(true)}
+                  disabled={refreshing || loading}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-yellow-400 text-black px-5 py-3 font-black text-xs hover:bg-yellow-300 transition cursor-pointer shadow-lg disabled:opacity-50 shrink-0"
                 >
-                  Try Again
+                  <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
+                  {refreshing ? "Syncing..." : "Sync Live Feeds"}
                 </button>
-
               </div>
+            </div>
+          </div>
 
-            )}
+          {/* SEARCH & CATEGORY BAR */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-zinc-950 p-4 rounded-3xl border border-yellow-500/20 shadow-xl">
+            {/* Categories */}
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  onClick={() => setActiveCategory(category.name)}
+                  className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 font-bold text-xs transition cursor-pointer ${
+                    activeCategory === category.name
+                      ? "bg-yellow-400 text-black shadow-lg shadow-yellow-400/20"
+                      : "bg-zinc-900 text-zinc-400 hover:text-white border border-white/5"
+                  }`}
+                >
+                  {category.icon}
+                  {category.name}
+                </button>
+              ))}
+            </div>
 
+            {/* Search Input */}
+            <div className="relative w-full md:w-80">
+              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search headlines or source..."
+                className="w-full bg-black border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-xs text-white outline-none focus:border-yellow-400 transition"
+              />
+            </div>
+          </div>
 
-            {/* LOADING */}
+          {/* STATUS BAR */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950 p-4 flex items-center justify-between">
+              <span className="text-zinc-400 text-xs font-semibold">Feed Status</span>
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="font-bold text-green-400 text-xs uppercase">Connected</span>
+              </div>
+            </div>
 
-            {loading && <div className="mt-6">
-              <NewsSkeleton />
-            </div>}
+            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950 p-4 flex items-center justify-between">
+              <span className="text-zinc-400 text-xs font-semibold">Active Stream</span>
+              <span className="font-bold text-white text-xs">{activeCategory}</span>
+            </div>
 
+            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950 p-4 flex items-center justify-between">
+              <span className="text-zinc-400 text-xs font-semibold">Last Synchronized</span>
+              <span className="font-bold text-yellow-400 text-xs">
+                {lastUpdated
+                  ? lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                  : "Syncing..."}
+              </span>
+            </div>
+          </div>
 
-            {/* NEWS GRID */}
+          {/* ERROR STATE */}
+          {error && !loading && (
+            <div className="rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-center space-y-4">
+              <FaExclamationTriangle className="mx-auto text-4xl text-red-400" />
+              <h3 className="text-xl font-bold text-red-400">Connection Interrupted</h3>
+              <p className="text-gray-400 text-xs">{error}</p>
+              <button
+                onClick={() => fetchNews(true)}
+                className="rounded-xl bg-yellow-400 px-5 py-2.5 font-bold text-black text-xs hover:bg-yellow-300 cursor-pointer shadow-lg"
+              >
+                Reconnect Stream
+              </button>
+            </div>
+          )}
 
-            {!loading && !error && news.length > 0 && (
+          {/* LOADING STATE */}
+          {loading && <NewsSkeleton />}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-
-                {news.map((item, index) => (
-
-                  <article
-                    key={`${item.url}-${index}`}
-                    className="group rounded-3xl border border-yellow-500/20 bg-zinc-900 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-yellow-400/50 hover:bg-yellow-400/5"
-                  >
-
-                    {/* TOP */}
-
+          {/* NEWS GRID */}
+          {!loading && !error && filteredNews.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredNews.map((item, index) => (
+                <article
+                  key={`${item.url}-${index}`}
+                  className="group rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 transition-all duration-300 hover:border-yellow-400/60 hover:bg-zinc-900 shadow-xl flex flex-col justify-between space-y-6"
+                >
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between gap-4">
-
-                      <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-bold text-yellow-400">
-                        {getCategoryLabel(
-                          item.category
-                        )}
+                      <span className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-yellow-400">
+                        {getCategoryLabel(item.category)}
                       </span>
-
-                      <span className="text-xs sm:text-sm text-gray-500">
-                        {formatTime(
-                          item.datetime
-                        )}
+                      <span className="text-xs text-zinc-500 font-semibold">
+                        {formatTime(item.datetime)}
                       </span>
-
                     </div>
 
-
-                    {/* IMAGE */}
-
                     {item.image && (
-
-                      <div className="mt-5 overflow-hidden rounded-2xl">
-
+                      <div className="overflow-hidden rounded-2xl border border-white/5">
                         <img
                           src={item.image}
                           alt={item.headline}
                           className="h-48 w-full object-cover transition duration-500 group-hover:scale-105"
                           onError={(e) => {
-                            e.currentTarget.style.display =
-                              "none";
+                            e.currentTarget.style.display = "none";
                           }}
                         />
-
                       </div>
-
                     )}
 
-
-                    {/* TITLE */}
-
-                    <h3 className="mt-5 text-xl md:text-2xl font-bold leading-tight transition group-hover:text-yellow-400">
-
+                    <h3 className="text-lg md:text-xl font-black leading-tight transition group-hover:text-yellow-400">
                       {item.headline}
-
                     </h3>
 
-
-                    {/* DESCRIPTION */}
-
-                    <p className="mt-3 leading-7 text-gray-400">
-
-                      {item.summary ||
-                        "Read the latest market developments and financial news from the original source."}
-
+                    <p className="text-xs md:text-sm leading-relaxed text-zinc-400 line-clamp-3">
+                      {item.summary || "Read complete institutional coverage and analytical breakdown from the original source."}
                     </p>
+                  </div>
 
-
-                    {/* FOOTER */}
-
-                    <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
-                      <div>
-
-                        <p className="text-sm font-semibold text-gray-300">
-
-                          {item.source ||
-                            "Market News"}
-
-                        </p>
-
-                        <p className="text-xs text-gray-500 mt-1">
-
-                          Stock Scorcher News
-
-                        </p>
-
-                      </div>
-
-
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-2 text-sm font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black"
-                      >
-
-                        Read Full Article
-
-                        <FaExternalLinkAlt
-                          size={12}
-                        />
-
-                      </a>
-
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold text-zinc-300">{item.source || "Market Wire"}</p>
+                      <p className="text-[10px] text-zinc-500">Stock Scorcher Intelligence</p>
                     </div>
 
-                  </article>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-2 text-xs font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black cursor-pointer shadow-lg shrink-0"
+                    >
+                      Read Article <FaExternalLinkAlt size={10} />
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
 
-                ))}
-
-              </div>
-
-            )}
-
-
-            {/* EMPTY */}
-
-            {!loading &&
-              !error &&
-              news.length === 0 && (
-
-                <div className="mt-6 rounded-3xl border border-white/10 bg-zinc-900 p-10 text-center">
-
-                  <FaNewspaper className="mx-auto text-4xl text-gray-600" />
-
-                  <h3 className="mt-4 text-xl font-bold">
-                    No News Found
-                  </h3>
-
-                  <p className="mt-2 text-gray-400">
-                    Try refreshing or selecting another category.
-                  </p>
-
-                  <button
-                    onClick={handleRefresh}
-                    className="mt-5 rounded-xl bg-yellow-400 px-5 py-3 font-bold text-black hover:bg-yellow-300"
-                  >
-                    Refresh News
-                  </button>
-
-                </div>
-
-              )}
-
-          </div>
+          {/* EMPTY SEARCH / NO RESULTS */}
+          {!loading && !error && filteredNews.length === 0 && (
+            <div className="rounded-3xl border border-white/10 bg-zinc-950 p-12 text-center space-y-3">
+              <FaNewspaper className="mx-auto text-4xl text-zinc-600" />
+              <h3 className="text-xl font-bold">No Matching Headlines Found</h3>
+              <p className="text-zinc-400 text-xs">Try searching for a different keyword or switch categories.</p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="mt-2 rounded-xl bg-yellow-400 px-5 py-2.5 font-bold text-black text-xs hover:bg-yellow-300 cursor-pointer"
+              >
+                Clear Search Filter
+              </button>
+            </div>
+          )}
 
         </main>
-
       </div>
-
     </div>
   );
 }

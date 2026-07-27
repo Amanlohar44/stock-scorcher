@@ -10,22 +10,17 @@ import marketDetector from "../utils/marketDetector";
 // =====================================================
 
 export async function getMarketQuote(symbol) {
-  if (!symbol) {
-    throw new Error("Symbol is required");
+  if (!symbol || typeof symbol !== "string") {
+    throw new Error("Symbol is required and must be a string");
   }
 
   const s = symbol.toUpperCase().trim();
 
   if (!s) {
-    throw new Error("Invalid symbol");
+    throw new Error("Invalid symbol provided");
   }
 
   const market = marketDetector(s);
-
-  console.log("Searching Market:", {
-    symbol: s,
-    market,
-  });
 
   // ===================================================
   // INDIAN STOCKS
@@ -49,7 +44,7 @@ export async function getMarketQuote(symbol) {
 
   if (market === "index") {
     throw new Error(
-      "Index market data is not connected yet."
+      "Index market data feed is not connected yet."
     );
   }
 
@@ -59,7 +54,7 @@ export async function getMarketQuote(symbol) {
 
   if (market === "crypto") {
     throw new Error(
-      "Crypto market data is not connected yet."
+      "Crypto market data feed is not connected yet."
     );
   }
 
@@ -69,7 +64,7 @@ export async function getMarketQuote(symbol) {
 
   if (market === "forex") {
     throw new Error(
-      "Forex market data is not connected yet."
+      "Forex market data feed is not connected yet."
     );
   }
 
@@ -79,12 +74,12 @@ export async function getMarketQuote(symbol) {
 
   if (market === "commodity") {
     throw new Error(
-      "Commodity market data is not connected yet."
+      "Commodity market data feed is not connected yet."
     );
   }
 
   // ===================================================
-  // DEFAULT
+  // DEFAULT FALLBACK
   // ===================================================
 
   return await getStockQuote(s);
@@ -96,14 +91,14 @@ export async function getMarketQuote(symbol) {
 // =====================================================
 
 export async function getMarketCompany(symbol) {
-  if (!symbol) {
-    throw new Error("Symbol is required");
+  if (!symbol || typeof symbol !== "string") {
+    throw new Error("Symbol is required and must be a string");
   }
 
   const s = symbol.toUpperCase().trim();
 
   if (!s) {
-    throw new Error("Invalid symbol");
+    throw new Error("Invalid symbol provided");
   }
 
   const market = marketDetector(s);
@@ -125,7 +120,7 @@ export async function getMarketCompany(symbol) {
   }
 
   // ===================================================
-  // OTHER MARKETS
+  // OTHER MARKETS (MOCK METADATA)
   // ===================================================
 
   if (market === "crypto") {
@@ -173,13 +168,13 @@ export async function getMarketCompany(symbol) {
   }
 
   // ===================================================
-  // FALLBACK
+  // UNIVERSAL FALLBACK
   // ===================================================
 
   return {
     name: s,
     ticker: s,
-    exchange: market.toUpperCase(),
+    exchange: market ? market.toUpperCase() : "GLOBAL",
     country: "Global",
     currency: "N/A",
     ipo: "N/A",

@@ -4,7 +4,7 @@
 // =======================================
 
 export function calculateSupportResistance(prices) {
-  if (!prices || prices.length < 20) {
+  if (!prices || !Array.isArray(prices) || prices.length < 20) {
     return null;
   }
 

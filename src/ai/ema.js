@@ -4,7 +4,7 @@
 // =======================================
 
 export function calculateEMA(prices, period = 20) {
-  if (!prices || prices.length < period) {
+  if (!prices || !Array.isArray(prices) || prices.length < period) {
     return null;
   }
 
@@ -19,8 +19,7 @@ export function calculateEMA(prices, period = 20) {
   let ema = sma;
 
   for (let i = period; i < prices.length; i++) {
-    ema =
-      (prices[i] - ema) * multiplier + ema;
+    ema = (prices[i] - ema) * multiplier + ema;
   }
 
   return Number(ema.toFixed(2));

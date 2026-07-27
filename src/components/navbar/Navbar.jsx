@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { motion } from "framer-motion";
-
 import Logo from "./Logo";
 import DesktopMenu from "./DesktopMenu";
 import MobileMenu from "./MobileMenu";
@@ -15,8 +14,7 @@ export default function Navbar() {
       setScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener("scroll", handleScroll);
-
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -25,23 +23,28 @@ export default function Navbar() {
       <motion.header
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "border-b border-white/10 bg-[#050505]/80 backdrop-blur-2xl shadow-2xl"
-            : "bg-transparent"
+            ? "border-b border-yellow-500/20 bg-[#030303]/90 backdrop-blur-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-3"
+            : "bg-transparent py-5"
         }`}
       >
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6">
 
-          <Logo />
+          {/* Brand Logo */}
+          <div className="flex items-center gap-2">
+            <Logo />
+          </div>
 
+          {/* Desktop Navigation Links */}
           <DesktopMenu />
 
-          {/* Mobile Button */}
+          {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setOpen(true)}
-            className="rounded-xl border border-white/10 p-3 text-white transition hover:border-yellow-400 hover:text-yellow-400 lg:hidden"
+            aria-label="Open Mobile Menu"
+            className="rounded-xl border border-yellow-500/20 bg-zinc-950 p-3 text-white transition-all hover:border-yellow-400 hover:text-yellow-400 lg:hidden cursor-pointer shadow-lg active:scale-95"
           >
             <Menu size={22} />
           </button>
@@ -49,6 +52,7 @@ export default function Navbar() {
         </div>
       </motion.header>
 
+      {/* Mobile Drawer Menu */}
       <MobileMenu open={open} setOpen={setOpen} />
     </>
   );

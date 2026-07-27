@@ -1,5 +1,6 @@
 // =======================================
-// AI Indicators Export
+// AI Indicators & Engine Export
+// Stock • Crypto • Forex
 // =======================================
 
 export { calculateRSI } from "./rsi";

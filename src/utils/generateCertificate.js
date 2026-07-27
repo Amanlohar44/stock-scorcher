@@ -6,6 +6,12 @@ import signature from "../assets/signature.png";
 import seal from "../assets/seal.png";
 
 async function generateCertificate(studentName, certificateId) {
+  const cleanName = studentName ? studentName.trim() : "Student";
+  const cleanId =
+    certificateId && certificateId.trim()
+      ? certificateId.trim()
+      : "SSC-" + Date.now().toString().slice(-8);
+
   const doc = new jsPDF({
     orientation: "landscape",
     unit: "mm",
@@ -32,14 +38,11 @@ async function generateCertificate(studentName, certificateId) {
   // =========================
   // Logo
   // =========================
-  doc.addImage(
-    logo,
-    "PNG",
-    118,
-    10,
-    38,
-    38
-  );
+  try {
+    doc.addImage(logo, "PNG", 118, 10, 38, 38);
+  } catch (err) {
+    console.warn("Logo image could not be loaded:", err);
+  }
 
   // =========================
   // Title
@@ -81,7 +84,7 @@ async function generateCertificate(studentName, certificateId) {
   doc.setTextColor(0);
 
   doc.text(
-    studentName || "Student",
+    cleanName,
     148.5,
     94,
     {
@@ -127,7 +130,8 @@ async function generateCertificate(studentName, certificateId) {
       align: "center",
     }
   );
-    // =========================
+
+  // =========================
   // Completion Date
   // =========================
   const today = new Date().toLocaleDateString("en-GB");
@@ -145,12 +149,8 @@ async function generateCertificate(studentName, certificateId) {
   // =========================
   // Certificate ID
   // =========================
-  certificateId =
-    certificateId ||
-    "SSC-" + Date.now().toString().slice(-8);
-
   doc.text(
-    `Certificate ID : ${certificateId}`,
+    `Certificate ID : ${cleanId}`,
     45,
     184
   );
@@ -158,26 +158,34 @@ async function generateCertificate(studentName, certificateId) {
   // =========================
   // Gold Seal
   // =========================
-  doc.addImage(
-    seal,
-    "PNG",
-    12,
-    116,
-    48,
-    48
-  );
+  try {
+    doc.addImage(
+      seal,
+      "PNG",
+      12,
+      116,
+      48,
+      48
+    );
+  } catch (err) {
+    console.warn("Seal image could not be loaded:", err);
+  }
 
   // =========================
   // Signature
   // =========================
-  doc.addImage(
-    signature,
-    "PNG",
-    198,
-    145,
-    62,
-    22
-  );
+  try {
+    doc.addImage(
+      signature,
+      "PNG",
+      198,
+      145,
+      62,
+      22
+    );
+  } catch (err) {
+    console.warn("Signature image could not be loaded:", err);
+  }
 
   doc.setDrawColor(210, 150, 0);
   doc.setLineWidth(0.8);
@@ -200,19 +208,23 @@ async function generateCertificate(studentName, certificateId) {
   // =========================
   // QR Code
   // =========================
-  const verifyUrl =
-    `${window.location.origin}/verify-certificate?id=${certificateId}`;
+  try {
+    const verifyUrl =
+      `${window.location.origin}/verify-certificate?id=${cleanId}`;
 
-  const qrImage = await QRCode.toDataURL(verifyUrl);
+    const qrImage = await QRCode.toDataURL(verifyUrl);
 
-  doc.addImage(
-    qrImage,
-    "PNG",
-    245,
-    118,
-    28,
-    28
-  );
+    doc.addImage(
+      qrImage,
+      "PNG",
+      245,
+      118,
+      28,
+      28
+    );
+  } catch (err) {
+    console.warn("QR Code generation failed:", err);
+  }
 
   doc.setFontSize(8);
   doc.setTextColor(80);
@@ -225,9 +237,10 @@ async function generateCertificate(studentName, certificateId) {
       align: "center",
     }
   );
-    return {
+
+  return {
     doc,
-    certificateId,
+    certificateId: cleanId,
   };
 }
 
@@ -237,20 +250,34 @@ export async function downloadCertificate(
   studentName,
   certificateId
 ) {
-  const { doc } = await generateCertificate(
-    studentName,
-    certificateId
-  );
+  try {
+    const { doc, certificateId: finalId } = await generateCertificate(
+      studentName,
+      certificateId
+    );
 
-  doc.save(
-    `StockScorcher-${studentName}-${certificateId}.pdf`
-  );
+    const safeName = studentName
+      ? studentName.trim().replace(/\s+/g, "-")
+      : "Student";
+
+    doc.save(
+      `StockScorcher-${safeName}-${finalId}.pdf`
+    );
+  } catch (error) {
+    console.error("Error downloading certificate:", error);
+    alert("Failed to download certificate PDF.");
+  }
 }
 
 export async function previewCertificate(studentName) {
-  const { doc } = await generateCertificate(studentName);
+  try {
+    const { doc } = await generateCertificate(studentName);
 
-  const blobUrl = doc.output("bloburl");
+    const blobUrl = doc.output("bloburl");
 
-  window.open(blobUrl, "_blank");
+    window.open(blobUrl, "_blank");
+  } catch (error) {
+    console.error("Error previewing certificate:", error);
+    alert("Failed to preview certificate PDF.");
+  }
 }

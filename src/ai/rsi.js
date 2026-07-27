@@ -4,7 +4,7 @@
 // =======================================
 
 export function calculateRSI(prices, period = 14) {
-  if (!prices || prices.length < period + 1) {
+  if (!prices || !Array.isArray(prices) || prices.length < period + 1) {
     return null;
   }
 
@@ -30,11 +30,8 @@ export function calculateRSI(prices, period = 14) {
     const gain = diff > 0 ? diff : 0;
     const loss = diff < 0 ? Math.abs(diff) : 0;
 
-    avgGain =
-      (avgGain * (period - 1) + gain) / period;
-
-    avgLoss =
-      (avgLoss * (period - 1) + loss) / period;
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
   }
 
   if (avgLoss === 0) return 100;

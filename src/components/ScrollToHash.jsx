@@ -6,7 +6,7 @@ export default function ScrollToHash() {
 
   useEffect(() => {
     if (hash) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const element = document.querySelector(hash);
 
         if (element) {
@@ -16,6 +16,8 @@ export default function ScrollToHash() {
           });
         }
       }, 100);
+
+      return () => clearTimeout(timer);
     } else {
       window.scrollTo({
         top: 0,
