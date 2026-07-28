@@ -73,11 +73,7 @@ export default function Footer() {
                   Courses & Modules
                 </Link>
               </li>
-              <li>
-                <Link to="/ai-assistant" onClick={scrollToTop} className="text-zinc-400 hover:text-yellow-400 transition-colors">
-                  AI Assistant 🤖
-                </Link>
-              </li>
+              
               <li>
                 <Link to="/reviews" onClick={scrollToTop} className="text-zinc-400 hover:text-yellow-400 transition-colors">
                   Student Reviews ⭐
