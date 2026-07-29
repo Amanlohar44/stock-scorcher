@@ -9,6 +9,7 @@ import {
   FaTags,
   FaVideo,
   FaPenFancy,
+  FaHandshake, // Naya icon add kiya hai Partners ke liye
 } from "react-icons/fa";
 
 export default function AdminSidebar({
@@ -46,6 +47,11 @@ export default function AdminSidebar({
       id: "analytics",
       icon: <FaChartLine />,
       title: "Analytics",
+    },
+    {
+      id: "partners",
+      icon: <FaHandshake />,
+      title: "Partners", // Ye naya option add ho gaya
     },
     {
       id: "coupons",
