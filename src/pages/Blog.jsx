@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Search, Calendar, User, Clock, ArrowUpRight, Tag, Sparkles, 
@@ -8,10 +8,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Firebase Imports
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase'; 
-
-
 
 const customEase = [0.22, 1, 0.36, 1];
 const fadeUp = {
@@ -25,177 +23,33 @@ const staggerContainer = {
 
 const BLOG_CATEGORIES = ['All', 'Stock Market', 'Crypto', 'Technical Analysis', 'Trading Strategies', 'Risk Management'];
 
-const FEATURED_POST = {
-  id: 'featured-1',
-  title: 'Mastering Price Action Trading: A Complete Roadmap for Beginners',
-  excerpt: 'Learn how to read naked charts, identify liquidity sweeps, and trade high-probability setups without relying on lagging indicators.',
-  category: 'Technical Analysis',
-  author: 'Aman Lohar',
-  date: 'July 26, 2026',
-  readTime: '8 min read',
-  views: '14.2k',
-  likesCount: 418,
-  image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
-  slug: 'mastering-price-action-trading',
-  content: `
-    Price Action trading is the absolute discipline of making trading decisions based purely on historical price movements rather than relying heavily on lagging technical indicators.
-
-    ### 1. Understanding Market Structure
-    Markets move in cycles. Before taking any trade position, you must identify whether the macro trend is:
-    * **Uptrend:** Higher Highs (HH) and Higher Lows (HL)
-    * **Downtrend:** Lower Highs (LH) and Lower Lows (LL)
-    * **Consolidation:** Equal Highs and Equal Lows (Sideways Range)
-
-    ### 2. Identifying Liquidity Sweeps
-    Institutional smart money requires liquidity to execute large block orders. They frequently push prices past obvious support and resistance levels to trigger retail stop-losses before driving the market toward the true directional target.
-
-    ### 3. Institutional Execution Rule
-    Always wait for a verified Change of Character (CHoCH) on lower timeframes after a higher-timeframe key order block is tested before committing capital.
-  `
+// Helper to convert standard YouTube links to embed links safely
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
 };
 
-const BLOG_POSTS = [
-  {
-    id: 'post-1',
-    title: 'Top 5 Risk Management Rules Every Crypto & Stock Trader Must Follow',
-    excerpt: 'Protect your capital first, make profits second. Here is the exact position sizing formula used by professional traders.',
-    category: 'Risk Management',
-    author: 'Aman Lohar',
-    date: 'July 22, 2026',
-    readTime: '5 min read',
-    views: '9.8k',
-    likesCount: 275,
-    image: 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?auto=format&fit=crop&q=80&w=800',
-    slug: 'top-5-risk-management-rules',
-    content: `
-      Risk management is the ultimate boundary separating consistent profitability from gambling in financial markets.
-
-      ### Rule 1: The Strict 1% Rule
-      Never risk more than 1% to 2% of your total trading capital on a single setup. If your account size is ₹1,00,000, your maximum drawdown per trade should never exceed ₹1,000.
-
-      ### Rule 2: Inflexible Stop-Loss Placement
-      A trade executed without a protective stop-loss is an unmanaged liability. Always place stops where the fundamental premise of your trade thesis becomes invalid.
-
-      ### Rule 3: Asymmetric Risk-to-Reward (RRR)
-      Target a minimum RRR of 1:2 or higher. For every ₹100 risked, position your profit target to capture at least ₹200.
-    `
-  },
-  {
-    id: 'post-2',
-    title: 'Understanding Market Structure: Higher Highs, Lower Lows & Liquidity',
-    excerpt: 'Decode how institutional order flow drives markets. Learn trend shifts, market structure breaks (MSB), and liquidity pools.',
-    category: 'Stock Market',
-    author: 'Aman Lohar',
-    date: 'July 18, 2026',
-    readTime: '6 min read',
-    views: '11.4k',
-    likesCount: 310,
-    image: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=800',
-    slug: 'understanding-market-structure',
-    content: `
-      Market structure forms the core structural backbone of professional technical analysis.
-
-      ### Market Structure Break (MSB)
-      When price decisively breaks a significant Higher Low in an established uptrend, or a Lower High in a downtrend, it signals an institutional shift in market bias.
-
-      ### Core Focus Areas:
-      1. Precise identification of Swing Highs and Swing Lows.
-      2. Differentiating genuine breakout momentum from bull/bear liquidity traps.
-      3. Aligning multi-timeframe confirmation (Daily for macro bias, 15-min for tactical execution).
-    `
-  },
-  {
-    id: 'post-3',
-    title: 'Crypto Market Cycles: How to Anticipate Altcoin Rotation Phases',
-    excerpt: 'Analyze Bitcoin dominance dynamics, liquidity flows, and on-chain volume metrics to stay ahead of retail sentiment.',
-    category: 'Crypto',
-    author: 'Aman Lohar',
-    date: 'July 12, 2026',
-    readTime: '7 min read',
-    views: '16.5k',
-    likesCount: 450,
-    image: 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&q=80&w=800',
-    slug: 'crypto-market-cycles',
-    content: `
-      Crypto assets operate in four distinct macro phases: Accumulation, Markup (Bull Run), Distribution, and Markdown (Bear Phase).
-
-      ### The Capital Rotation Blueprint:
-      1. **Bitcoin Inflows:** Institutional capital enters Bitcoin first, driving BTC dominance higher.
-      2. **Ethereum & Large-Cap Expansion:** Profits rotate smoothly from BTC into ETH and top-tier altcoins.
-      3. **Speculative Altcoin Mania:** High-beta mid and low-cap tokens experience parabolic expansion before cycle exhaustion.
-    `
-  },
-  {
-    id: 'post-4',
-    title: 'Option Buying vs Option Selling: Structuring Capital Efficiency',
-    excerpt: 'A comprehensive comparative breakdown of volatility, time decay (Theta), and win probabilities for derivatives traders.',
-    category: 'Trading Strategies',
-    author: 'Aman Lohar',
-    date: 'July 08, 2026',
-    readTime: '9 min read',
-    views: '12.9k',
-    likesCount: 335,
-    image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
-    slug: 'option-buying-vs-option-selling',
-    content: `
-      Derivatives trading offers supreme leverage but demands rigorous control over time decay.
-
-      * **Option Buying:** Defined risk, asymmetric upside potential. Demands precise directional momentum and rapid execution timing.
-      * **Option Selling:** High statistical win rate (~65-72%), requiring higher margin capital and strict volatility hedging.
-    `
-  },
-  {
-    id: 'post-5',
-    title: 'Trading Psychology: Defeating FOMO and Eliminating Revenge Trades',
-    excerpt: 'Trading is 80% emotional regulation and 20% technical strategy. Build mental frameworks to survive severe drawdowns.',
-    category: 'Trading Strategies',
-    author: 'Aman Lohar',
-    date: 'July 01, 2026',
-    readTime: '4 min read',
-    views: '8.2k',
-    likesCount: 220,
-    image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800',
-    slug: 'trading-psychology-defeating-fomo',
-    content: `
-      Your psychological state during active market exposure dictates your long-term account survival.
-
-      ### Overcoming Revenge Trading:
-      * Enforce a strict daily stop-loss limit (e.g., maximum 2 consecutive losses per session).
-      * Shut down your trading terminal immediately once your daily drawdown threshold is breached.
-      * Remember: Preserving buying power guarantees you live to trade another session.
-    `
-  },
-  {
-    id: 'post-6',
-    title: 'How to Build an Objective Trading Journal for Consistent Edge',
-    excerpt: 'Track performance metrics, pinpoint recurring tactical errors, and optimize your trading playbook using our verified framework.',
-    category: 'Risk Management',
-    author: 'Aman Lohar',
-    date: 'June 25, 2026',
-    readTime: '6 min read',
-    views: '10.3k',
-    likesCount: 290,
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800',
-    slug: 'build-objective-trading-journal',
-    content: `
-      What gets measured accurately gets systematically improved. A professional trading journal provides indisputable empirical proof of your edge.
-
-      ### Essential Metrics to Log:
-      1. Exact Entry, Stop-Loss, and Target prices.
-      2. Setup classification and market context.
-      3. Pre and post-trade chart screenshots.
-      4. Psychological state evaluation (Calm, Hesitant, Overconfident).
-    `
-  }
-];
-
 export default function Blog() {
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeArticle, setActiveArticle] = useState(null);
   
   // Interactive State
-  const [likedPosts, setLikedPosts] = useState({});
+  const [likedPosts, setLikedPosts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ss_liked_posts');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
   const [bookmarkedPosts, setBookmarkedPosts] = useState(() => {
     try {
       const saved = localStorage.getItem('ss_saved_posts');
@@ -204,6 +58,8 @@ export default function Blog() {
       return {};
     }
   });
+
+  const [viewedPosts, setViewedPosts] = useState(new Set());
   const [copied, setCopied] = useState(false);
 
   // Newsletter State
@@ -231,33 +87,133 @@ export default function Blog() {
     } catch (e) {}
   }, [bookmarkedPosts]);
 
-  const filteredPosts = BLOG_POSTS.filter((post) => {
-    const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
-    const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('ss_liked_posts', JSON.stringify(likedPosts));
+    } catch (e) {}
+  }, [likedPosts]);
 
-  const toggleLike = (postId) => {
-    setLikedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
+  // Fetch blogs from Firestore
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const q = query(collection(db, 'blogs'), orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const fetchedPosts = querySnapshot?.docs?.map(doc => {
+          const data = doc?.data();
+          return {
+            id: doc?.id,
+            title: data?.title || 'Untitled Article',
+            excerpt: data?.description || 'No description available.',
+            content: data?.description || 'No content provided.',
+            category: data?.category || 'Uncategorized',
+            image: data?.image || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
+            videoUrl: data?.videoUrl || null,
+            author: 'Aman Lohar',
+            date: data?.createdAt?.seconds 
+              ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
+              : 'Recent',
+            readTime: '5 min read',
+            views: data?.views || 0,
+            likesCount: data?.likesCount || 0,
+          };
+        });
+        setBlogPosts(fetchedPosts || []);
+      } catch (err) {
+        console.error("Error fetching blogs:", err);
+        setFetchError(err?.message || "Failed to load posts.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
+  const { featuredPost, gridPosts } = useMemo(() => {
+    if (!blogPosts || blogPosts?.length === 0) return { featuredPost: null, gridPosts: [] };
+    return {
+      featuredPost: blogPosts[0],
+      gridPosts: blogPosts?.slice(1)
+    };
+  }, [blogPosts]);
+
+  const filteredPosts = useMemo(() => {
+    return gridPosts?.filter((post) => {
+      const matchesCategory = selectedCategory === 'All' || post?.category === selectedCategory;
+      const matchesSearch =
+        post?.title?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
+        post?.excerpt?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
+        post?.category?.toLowerCase()?.includes(searchQuery?.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [gridPosts, selectedCategory, searchQuery]);
+
+  const toggleLike = async (postId) => {
+    const isCurrentlyLiked = likedPosts[postId];
+    
+    // Optimistic UI Update
+    setLikedPosts((prev) => ({ ...prev, [postId]: !isCurrentlyLiked }));
+    setBlogPosts((prevPosts) => 
+      prevPosts.map((post) => 
+        post.id === postId 
+          ? { ...post, likesCount: Math.max(0, (post.likesCount || 0) + (isCurrentlyLiked ? -1 : 1)) }
+          : post
+      )
+    );
+
+    if (activeArticle?.id === postId) {
+      setActiveArticle((prev) => ({ ...prev, likesCount: Math.max(0, (prev.likesCount || 0) + (isCurrentlyLiked ? -1 : 1)) }));
+    }
+
+    // Firestore Update
+    try {
+      const postRef = doc(db, 'blogs', postId);
+      await updateDoc(postRef, {
+        likesCount: increment(isCurrentlyLiked ? -1 : 1)
+      });
+    } catch (error) {
+      console.error("Error updating likes:", error);
+    }
   };
 
   const toggleBookmark = (postId) => {
-    setBookmarkedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
+    setBookmarkedPosts((prev) => ({ ...prev, [postId]: !prev?.[postId] }));
   };
 
   const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(window?.location?.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleOpenArticle = async (post) => {
+    const isFirstViewInSession = !viewedPosts.has(post.id);
+    
+    if (isFirstViewInSession) {
+      setViewedPosts((prev) => new Set(prev).add(post.id));
+      
+      const updatedPost = { ...post, views: (post.views || 0) + 1 };
+      setActiveArticle(updatedPost);
+      
+      setBlogPosts((prevPosts) => 
+        prevPosts.map(p => p.id === post.id ? updatedPost : p)
+      );
+
+      try {
+        const postRef = doc(db, 'blogs', post.id);
+        await updateDoc(postRef, { views: increment(1) });
+      } catch (error) {
+        console.error("Error updating views:", error);
+      }
+    } else {
+      setActiveArticle(post);
+    }
+  };
+
   const handleSubscribe = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!newsletterEmail) return;
     setSubscribeStatus('loading');
 
@@ -270,7 +226,7 @@ export default function Blog() {
         });
       }
     } catch (err) {
-      console.log('Firebase store fallback');
+      console.log('Firebase store fallback', err);
     }
 
     setTimeout(() => {
@@ -362,7 +318,7 @@ export default function Blog() {
                   type="text"
                   placeholder="Search articles by title or keyword..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e?.target?.value)}
                   className="w-full bg-[#080808] border border-white/10 rounded-2xl pl-11 pr-10 py-3.5 text-sm text-white placeholder:text-neutral-500 outline-none focus:border-[#EAB308] transition-colors shadow-xl"
                 />
                 {searchQuery && (
@@ -374,7 +330,7 @@ export default function Blog() {
 
               {/* Categories Filter Tabs */}
               <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                {BLOG_CATEGORIES.map((cat) => (
+                {BLOG_CATEGORIES?.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
@@ -392,187 +348,218 @@ export default function Blog() {
             </motion.div>
           </section>
 
-          {/* Featured Post */}
-          {selectedCategory === 'All' && !searchQuery && (
-            <section className="pb-16">
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                className="group relative bg-[#060606] border border-white/10 hover:border-[#EAB308]/50 rounded-[2.5rem] overflow-hidden transition-all duration-500 grid grid-cols-1 lg:grid-cols-12 shadow-2xl"
-              >
-                <div className="lg:col-span-7 relative h-72 sm:h-96 lg:h-auto overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent lg:hidden z-10" />
-                  <img 
-                    src={FEATURED_POST.image} 
-                    alt={FEATURED_POST.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90"
-                  />
-                  <div className="absolute top-6 left-6 z-20">
-                    <span className="bg-[#EAB308] text-black text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
-                      <Flame size={14} /> Featured Analysis
-                    </span>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-5 p-8 sm:p-12 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-4 text-xs text-neutral-400 mb-4 font-medium">
-                      <span className="flex items-center gap-1.5 text-[#EAB308]">
-                        <Tag size={13} />
-                        {FEATURED_POST.category}
-                      </span>
-                      <span>&bull;</span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock size={13} />
-                        {FEATURED_POST.readTime}
-                      </span>
-                    </div>
-
-                    <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-4 group-hover:text-[#EAB308] transition-colors">
-                      {FEATURED_POST.title}
-                    </h2>
-
-                    <p className="text-sm sm:text-base text-neutral-400 font-light leading-relaxed mb-8">
-                      {FEATURED_POST.excerpt}
-                    </p>
-                  </div>
-
-                  <div className="pt-6 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
-                        <User size={16} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-white">{FEATURED_POST.author}</p>
-                        <p className="text-[11px] text-neutral-500">{FEATURED_POST.date}</p>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={() => setActiveArticle(FEATURED_POST)}
-                      className="inline-flex items-center gap-2 bg-[#121212] hover:bg-[#EAB308] text-white hover:text-black font-bold text-xs sm:text-sm px-5 py-3 rounded-xl border border-white/10 hover:border-[#EAB308] transition-all duration-300 cursor-pointer shadow-lg"
-                    >
-                      Read Article <ArrowUpRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+          {/* Dynamic Rendering Area Based on Fetch State */}
+          {loading ? (
+            <section className="pb-16 flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-12 h-12 text-[#EAB308] animate-spin mb-6" />
+              <h3 className="text-white text-xl font-bold tracking-widest uppercase mb-2">Decrypting Markets</h3>
+              <p className="text-neutral-500 font-light text-sm">Fetching the latest insights...</p>
             </section>
-          )}
-
-          {/* Blog Grid */}
-          <section className="pb-16">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Latest Articles <span className="text-xs ml-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-400 font-mono">{filteredPosts.length}</span>
-              </h2>
-            </div>
-
-            {filteredPosts.length === 0 ? (
-              <div className="text-center py-20 bg-[#060606] border border-white/10 rounded-3xl">
-                <p className="text-neutral-400 text-lg mb-4">No articles found matching your criteria.</p>
-                <button onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }} className="text-[#EAB308] font-bold text-sm hover:underline cursor-pointer">
-                  Clear search and filters
-                </button>
+          ) : fetchError ? (
+            <section className="pb-16 flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-red-400 mb-4">{fetchError}</p>
+              <button onClick={() => window.location.reload()} className="text-[#EAB308] underline text-sm font-bold">Try Again</button>
+            </section>
+          ) : blogPosts?.length === 0 ? (
+            <section className="pb-16">
+              <div className="flex flex-col items-center justify-center py-24 bg-[#060606] border border-white/10 rounded-[2.5rem] shadow-2xl mx-auto text-center p-8">
+                  <div className="w-20 h-20 bg-[#EAB308]/10 rounded-full flex items-center justify-center mb-6">
+                      <Search className="text-[#EAB308] w-10 h-10" />
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-black text-white mb-3">No Insights Found</h3>
+                  <p className="text-neutral-400 font-light max-w-md mx-auto mb-8">We haven't published any articles yet. Check back soon for deep-dive market analysis and trading wisdom.</p>
               </div>
-            ) : (
-              <motion.div 
-                initial="hidden"
-                animate="visible"
-                variants={staggerContainer}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
-              >
-                {filteredPosts.map((post) => {
-                  const isLiked = likedPosts[post.id];
-                  const isBookmarked = bookmarkedPosts[post.id];
+            </section>
+          ) : (
+            <>
+              {/* Featured Post */}
+              {selectedCategory === 'All' && !searchQuery && featuredPost && (
+                <section className="pb-16">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="group relative bg-[#060606] border border-white/10 hover:border-[#EAB308]/50 rounded-[2.5rem] overflow-hidden transition-all duration-500 grid grid-cols-1 lg:grid-cols-12 shadow-2xl"
+                  >
+                    <div className="lg:col-span-7 relative h-72 sm:h-96 lg:h-auto overflow-hidden bg-[#121212]">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent lg:hidden z-10" />
+                      <img 
+                        src={featuredPost?.image} 
+                        alt={featuredPost?.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90"
+                      />
+                      <div className="absolute top-6 left-6 z-20">
+                        <span className="bg-[#EAB308] text-black text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+                          <Flame size={14} /> Featured Analysis
+                        </span>
+                      </div>
+                    </div>
 
-                  return (
-                    <motion.div 
-                      key={post.id}
-                      variants={fadeUp}
-                      className="group relative bg-[#060606] border border-white/10 hover:border-white/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 flex flex-col justify-between shadow-xl"
-                    >
+                    <div className="lg:col-span-5 p-8 sm:p-12 flex flex-col justify-between">
                       <div>
-                        {/* Thumbnail */}
-                        <div className="relative h-52 w-full overflow-hidden border-b border-white/10">
-                          <img 
-                            src={post.image} 
-                            alt={post.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-85"
-                          />
-                          <div className="absolute top-4 left-4">
-                            <span className="bg-black/70 backdrop-blur-md text-white border border-white/20 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-                              {post.category}
-                            </span>
-                          </div>
-
-                          <div className="absolute top-4 right-4">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleBookmark(post.id); }}
-                              className={`p-2.5 rounded-xl backdrop-blur-md border transition-all cursor-pointer ${
-                                isBookmarked ? 'bg-[#EAB308] text-black border-[#EAB308]' : 'bg-black/60 border-white/20 text-white hover:text-[#EAB308]'
-                              }`}
-                              title="Bookmark"
-                            >
-                              <Bookmark size={14} />
-                            </button>
-                          </div>
+                        <div className="flex items-center gap-4 text-xs text-neutral-400 mb-4 font-medium">
+                          <span className="flex items-center gap-1.5 text-[#EAB308]">
+                            <Tag size={13} />
+                            {featuredPost?.category}
+                          </span>
+                          <span>&bull;</span>
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={13} />
+                            {featuredPost?.readTime}
+                          </span>
+                          <span>&bull;</span>
+                          <span className="flex items-center gap-1.5">
+                            <Eye size={13} />
+                            {featuredPost?.views} Views
+                          </span>
                         </div>
 
-                        {/* Content */}
-                        <div className="p-6 sm:p-8">
-                          <div className="flex items-center gap-3 text-xs text-neutral-400 mb-3 font-medium">
-                            <span className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              {post.date}
-                            </span>
-                            <span>&bull;</span>
-                            <span className="flex items-center gap-1">
-                              <Clock size={12} />
-                              {post.readTime}
-                            </span>
-                          </div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-4 group-hover:text-[#EAB308] transition-colors">
+                          {featuredPost?.title}
+                        </h2>
 
-                          <h3 
-                            onClick={() => setActiveArticle(post)}
-                            className="text-xl font-bold text-white tracking-tight mb-3 group-hover:text-[#EAB308] transition-colors line-clamp-2 cursor-pointer"
-                          >
-                            {post.title}
-                          </h3>
-
-                          <p className="text-sm text-neutral-400 font-light leading-relaxed line-clamp-3 mb-6">
-                            {post.excerpt}
-                          </p>
-                        </div>
+                        <p className="text-sm sm:text-base text-neutral-400 font-light leading-relaxed mb-8 line-clamp-3 md:line-clamp-4">
+  {featuredPost?.excerpt}
+</p>
                       </div>
 
-                      {/* Footer */}
-                      <div className="px-6 sm:px-8 pb-8 pt-0 flex items-center justify-between border-t border-white/5 pt-5">
-                        <button
-                          onClick={() => toggleLike(post.id)}
-                          className={`flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                            isLiked ? 'text-red-400' : 'text-neutral-500 hover:text-white'
-                          }`}
-                        >
-                          <ThumbsUp size={14} className={isLiked ? 'fill-red-400' : ''} />
-                          <span>{post.likesCount + (isLiked ? 1 : 0)}</span>
-                        </button>
+                      <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
+                            <User size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white">{featuredPost?.author}</p>
+                            <p className="text-[11px] text-neutral-500">{featuredPost?.date}</p>
+                          </div>
+                        </div>
 
                         <button 
-                          onClick={() => setActiveArticle(post)}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#EAB308] hover:text-white transition-colors cursor-pointer"
+                          onClick={() => handleOpenArticle(featuredPost)}
+                          className="inline-flex items-center gap-2 bg-[#121212] hover:bg-[#EAB308] text-white hover:text-black font-bold text-xs sm:text-sm px-5 py-3 rounded-xl border border-white/10 hover:border-[#EAB308] transition-all duration-300 cursor-pointer shadow-lg"
                         >
-                          Read Article <ArrowUpRight size={15} />
+                          Read Article <ArrowUpRight size={16} />
                         </button>
                       </div>
+                    </div>
+                  </motion.div>
+                </section>
+              )}
 
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            )}
-          </section>
+              {/* Blog Grid */}
+              <section className="pb-16">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    Latest Articles <span className="text-xs ml-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-400 font-mono">{filteredPosts?.length || 0}</span>
+                  </h2>
+                </div>
+
+                {filteredPosts?.length === 0 ? (
+                  <div className="text-center py-20 bg-[#060606] border border-white/10 rounded-3xl">
+                    <p className="text-neutral-400 text-lg mb-4">No articles found matching your criteria.</p>
+                    <button onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }} className="text-[#EAB308] font-bold text-sm hover:underline cursor-pointer">
+                      Clear search and filters
+                    </button>
+                  </div>
+                ) : (
+                  <motion.div 
+                    initial="hidden"
+                    animate="visible"
+                    variants={staggerContainer}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
+                  >
+                    {filteredPosts?.map((post) => {
+                      const isLiked = likedPosts?.[post?.id];
+                      const isBookmarked = bookmarkedPosts?.[post?.id];
+
+                      return (
+                        <motion.div 
+                          key={post?.id}
+                          variants={fadeUp}
+                          className="group relative bg-[#060606] border border-white/10 hover:border-white/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 flex flex-col justify-between shadow-xl"
+                        >
+                          <div>
+                            {/* Thumbnail */}
+                            <div className="relative h-52 w-full overflow-hidden border-b border-white/10 bg-[#121212]">
+                              <img 
+                                src={post?.image} 
+                                alt={post?.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-85"
+                              />
+                              <div className="absolute top-4 left-4">
+                                <span className="bg-black/70 backdrop-blur-md text-white border border-white/20 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                                  {post?.category}
+                                </span>
+                              </div>
+
+                              <div className="absolute top-4 right-4">
+                                <button
+                                  onClick={(e) => { e?.stopPropagation(); toggleBookmark(post?.id); }}
+                                  className={`p-2.5 rounded-xl backdrop-blur-md border transition-all cursor-pointer ${
+                                    isBookmarked ? 'bg-[#EAB308] text-black border-[#EAB308]' : 'bg-black/60 border-white/20 text-white hover:text-[#EAB308]'
+                                  }`}
+                                  title="Bookmark"
+                                >
+                                  <Bookmark size={14} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6 sm:p-8">
+                              <div className="flex items-center gap-3 text-xs text-neutral-400 mb-3 font-medium">
+                                <span className="flex items-center gap-1">
+                                  <Calendar size={12} />
+                                  {post?.date}
+                                </span>
+                                <span>&bull;</span>
+                                <span className="flex items-center gap-1">
+                                  <Clock size={12} />
+                                  {post?.readTime}
+                                </span>
+                              </div>
+
+                              <h3 
+                                onClick={() => handleOpenArticle(post)}
+                                className="text-xl font-bold text-white tracking-tight mb-3 group-hover:text-[#EAB308] transition-colors line-clamp-2 cursor-pointer"
+                              >
+                                {post?.title}
+                              </h3>
+
+                              <p className="text-sm text-neutral-400 font-light leading-relaxed line-clamp-3 mb-6">
+                                {post?.excerpt}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Footer */}
+                          <div className="px-6 sm:px-8 pb-8 pt-0 flex items-center justify-between border-t border-white/5 pt-5">
+                            <button
+                              onClick={() => toggleLike(post?.id)}
+                              className={`flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                                isLiked ? 'text-red-400' : 'text-neutral-500 hover:text-white'
+                              }`}
+                            >
+                              <ThumbsUp size={14} className={isLiked ? 'fill-red-400' : ''} />
+                              <span>{post?.likesCount || 0}</span>
+                            </button>
+
+                            <button 
+                              onClick={() => handleOpenArticle(post)}
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#EAB308] hover:text-white transition-colors cursor-pointer"
+                            >
+                              Read Article <ArrowUpRight size={15} />
+                            </button>
+                          </div>
+
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </section>
+            </>
+          )}
 
           {/* Position Size & Risk Calculator Section */}
           <section className="pb-16">
@@ -595,7 +582,7 @@ export default function Blog() {
                   <input
                     type="number"
                     value={accountSize}
-                    onChange={(e) => setAccountSize(Number(e.target.value))}
+                    onChange={(e) => setAccountSize(Number(e?.target?.value))}
                     className="w-full bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3.5 rounded-xl text-sm outline-none transition-colors"
                   />
                 </div>
@@ -605,7 +592,7 @@ export default function Blog() {
                     type="number"
                     step="0.5"
                     value={riskPercent}
-                    onChange={(e) => setRiskPercent(Number(e.target.value))}
+                    onChange={(e) => setRiskPercent(Number(e?.target?.value))}
                     className="w-full bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3.5 rounded-xl text-sm outline-none transition-colors"
                   />
                 </div>
@@ -614,7 +601,7 @@ export default function Blog() {
                   <input
                     type="number"
                     value={entryPrice}
-                    onChange={(e) => setEntryPrice(Number(e.target.value))}
+                    onChange={(e) => setEntryPrice(Number(e?.target?.value))}
                     className="w-full bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3.5 rounded-xl text-sm outline-none transition-colors"
                   />
                 </div>
@@ -623,7 +610,7 @@ export default function Blog() {
                   <input
                     type="number"
                     value={stopLossPrice}
-                    onChange={(e) => setStopLossPrice(Number(e.target.value))}
+                    onChange={(e) => setStopLossPrice(Number(e?.target?.value))}
                     className="w-full bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3.5 rounded-xl text-sm outline-none transition-colors"
                   />
                 </div>
@@ -632,7 +619,7 @@ export default function Blog() {
                   <input
                     type="number"
                     value={targetPrice}
-                    onChange={(e) => setTargetPrice(Number(e.target.value))}
+                    onChange={(e) => setTargetPrice(Number(e?.target?.value))}
                     className="w-full bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3.5 rounded-xl text-sm outline-none transition-colors"
                   />
                 </div>
@@ -642,7 +629,7 @@ export default function Blog() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-black border border-white/10 p-6 rounded-2xl">
                 <div>
                   <span className="text-xs text-neutral-500 uppercase tracking-widest font-bold block mb-1">Total Risk</span>
-                  <span className="text-xl sm:text-2xl font-black text-red-400">₹{totalRiskAmount.toLocaleString()}</span>
+                  <span className="text-xl sm:text-2xl font-black text-red-400">₹{totalRiskAmount?.toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-xs text-neutral-500 uppercase tracking-widest font-bold block mb-1">Recommended Qty</span>
@@ -654,7 +641,7 @@ export default function Blog() {
                 </div>
                 <div>
                   <span className="text-xs text-neutral-500 uppercase tracking-widest font-bold block mb-1">Potential Profit</span>
-                  <span className="text-xl sm:text-2xl font-black text-emerald-400">₹{totalRewardAmount.toLocaleString()}</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400">₹{totalRewardAmount?.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -682,7 +669,7 @@ export default function Blog() {
                   <input
                     type="email"
                     value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    onChange={(e) => setNewsletterEmail(e?.target?.value)}
                     placeholder="Enter your email address"
                     className="w-full bg-black border border-white/10 focus:border-[#EAB308] text-white px-5 py-3.5 rounded-xl text-sm outline-none transition-colors placeholder:text-neutral-500"
                     required
@@ -707,8 +694,6 @@ export default function Blog() {
           </section>
 
         </main>
-
-        
       </div>
 
       {/* Article Modal Overlay */}
@@ -733,18 +718,19 @@ export default function Blog() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => toggleLike(activeArticle.id)}
-                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                      likedPosts[activeArticle.id] ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                    onClick={() => toggleLike(activeArticle?.id)}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                      likedPosts?.[activeArticle?.id] ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
                     }`}
                     title="Like"
                   >
-                    <ThumbsUp size={16} className={likedPosts[activeArticle.id] ? 'fill-red-400' : ''} />
+                    <ThumbsUp size={16} className={likedPosts?.[activeArticle?.id] ? 'fill-red-400' : ''} />
+                    <span className="text-xs font-bold">{activeArticle?.likesCount || 0}</span>
                   </button>
                   <button
-                    onClick={() => toggleBookmark(activeArticle.id)}
+                    onClick={() => toggleBookmark(activeArticle?.id)}
                     className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                      bookmarkedPosts[activeArticle.id] ? 'bg-[#EAB308] border-[#EAB308] text-black font-bold' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                      bookmarkedPosts?.[activeArticle?.id] ? 'bg-[#EAB308] border-[#EAB308] text-black font-bold' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
                     }`}
                     title="Bookmark"
                   >
@@ -773,30 +759,44 @@ export default function Blog() {
 
               <div className="mb-8">
                 <span className="inline-block bg-[#EAB308]/10 border border-[#EAB308]/30 text-[#EAB308] text-xs font-bold uppercase tracking-wider px-3.5 py-1 rounded-full mb-4">
-                  {activeArticle.category}
+                  {activeArticle?.category}
                 </span>
                 <h2 className="text-2xl sm:text-4xl font-black text-white mb-6 leading-tight">
-                  {activeArticle.title}
+                  {activeArticle?.title}
                 </h2>
                 <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-neutral-400">
-                  <span className="flex items-center gap-1.5 text-white font-bold"><User size={15} className="text-[#EAB308]" /> {activeArticle.author}</span>
+                  <span className="flex items-center gap-1.5 text-white font-bold"><User size={15} className="text-[#EAB308]" /> {activeArticle?.author}</span>
                   <span>&bull;</span>
-                  <span className="flex items-center gap-1.5"><Calendar size={15} /> {activeArticle.date}</span>
+                  <span className="flex items-center gap-1.5"><Calendar size={15} /> {activeArticle?.date}</span>
                   <span>&bull;</span>
-                  <span className="flex items-center gap-1.5"><Clock size={15} /> {activeArticle.readTime}</span>
+                  <span className="flex items-center gap-1.5"><Clock size={15} /> {activeArticle?.readTime}</span>
+                  <span>&bull;</span>
+                  <span className="flex items-center gap-1.5"><Eye size={15} /> {activeArticle?.views || 0} Views</span>
                 </div>
               </div>
 
-              <div className="relative aspect-video rounded-2xl overflow-hidden mb-10 border border-white/10">
-                <img
-                  src={activeArticle.image}
-                  alt={activeArticle.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              {activeArticle?.videoUrl ? (
+                <div className="relative aspect-video rounded-2xl overflow-hidden mb-10 border border-white/10 bg-[#121212]">
+                  <iframe
+                    src={getYouTubeEmbedUrl(activeArticle?.videoUrl)}
+                    title={activeArticle?.title || 'YouTube video'}
+                    className="w-full h-full border-0 absolute top-0 left-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="relative aspect-video rounded-2xl overflow-hidden mb-10 border border-white/10 bg-[#121212]">
+                  <img
+                    src={activeArticle?.image}
+                    alt={activeArticle?.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
 
               <div className="prose prose-invert max-w-none text-neutral-300 text-sm sm:text-base leading-relaxed space-y-5 mb-10 whitespace-pre-line font-light">
-                {activeArticle.content}
+                {activeArticle?.content}
               </div>
 
               <div className="bg-black border border-white/10 rounded-2xl p-6 flex items-center gap-4">
@@ -807,7 +807,7 @@ export default function Blog() {
                 </div>
                 <div>
                   <h4 className="text-white font-bold text-sm flex items-center gap-1.5">
-                    <span>Written by Aman Lohar</span>
+                    <span>Written by {activeArticle?.author}</span>
                     <Shield size={14} className="text-[#EAB308] fill-[#EAB308]/20" />
                   </h4>
                   <p className="text-xs text-neutral-400 mt-1 font-light">Founder & Lead Trader at Stock Scorcher. Specialized in price action trading, market structure, and retail risk management.</p>
