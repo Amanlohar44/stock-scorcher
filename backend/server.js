@@ -27,8 +27,8 @@ const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.use(cors({
-  origin: ["https://stock-scorcher-eight.vercel.app", "https://stockscorcher.com", "https://www.stockscorcher.com", "http://localhost:5177", "http://localhost:5173"],
-  methods: ["GET", "POST", "OPTIONS"],
+  origin: ["https://stock-scorcher-eight.vercel.app", "https://stockscorcher.com", "https://www.stockscorcher.com", "http://localhost:5177", "http://localhost:5174"],
+  methods: ["GET", "POST", "PUT", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
@@ -108,8 +108,7 @@ app.post("/verify-payment", async (req, res) => {
           const saleDoc = await transaction.get(saleRef);
           
           if (partnerDoc.exists && !saleDoc.exists) {
-            // 🔥 DYNAMIC PERCENTAGE LOGIC 🔥
-            const commissionPercentage = partnerDoc.data().commissionPercentage || 20; // Default 20% agar set nahi hai toh
+            const commissionPercentage = partnerDoc.data().commissionPercentage || 20; 
             const commissionAmount = (amount * commissionPercentage) / 100; 
 
             transaction.set(saleRef, { orderId: razorpay_order_id, partnerId, amountPaid: amount, commissionAmount, timestamp: FieldValue.serverTimestamp(), status: "successful" });
@@ -137,11 +136,28 @@ app.post("/api/partners/apply", verifyToken, async (req, res) => {
     const shortUid = uid.substring(0, 6).toUpperCase();
     await partnerRef.set({
       uid, email, personalInfo: { name: fullName }, phone, promotionMethod, payoutDetails,
-      partnerId: `SSC${shortUid}`, status: "pending", commissionPercentage: 20, // Default 20% for new apply
+      partnerId: `SSC${shortUid}`, status: "pending", commissionPercentage: 20, 
       walletBalance: 0, totalEarned: 0, totalSalesCount: 0, appliedAt: FieldValue.serverTimestamp()
     });
     res.status(201).json({ message: "Submitted" });
   } catch (error) { res.status(500).json({ error: "Failed" }); }
+});
+
+// 🔥 NEW STATUS CHECK ROUTE 🔥
+app.get("/api/partners/status/:uid", verifyToken, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    if (req.user.uid !== uid) return res.status(403).json({ error: "Forbidden" });
+
+    const partnerDoc = await firestore.collection("partners").doc(uid).get();
+    if (!partnerDoc.exists) {
+      return res.status(404).json({ exists: false });
+    }
+
+    res.status(200).json({ exists: true, data: partnerDoc.data() });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to check status" });
+  }
 });
 
 app.get("/api/partners/analytics/:partnerId", verifyToken, async (req, res) => {

@@ -1,6 +1,8 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { getAuth } from "firebase/auth";
+import axios from "axios";
 import { 
   ArrowRight, 
   Crown, 
@@ -19,7 +21,46 @@ import FounderBadge from "../components/hero/FounderBadge";
 import AboutFounder from "../components/AboutFounder";
 import WhatsAppButton from "../components/WhatsAppButton";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 export default function Home() {
+  const [isPartner, setIsPartner] = useState(false);
+  const navigate = useNavigate();
+  const auth = getAuth();
+
+  useEffect(() => {
+    const checkPartnerStatus = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const res = await axios.get(`${API_BASE_URL}/api/partners/status/${user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.exists) {
+          setIsPartner(true);
+        }
+      } catch (err) {
+        // Not a partner yet
+      }
+    };
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) checkPartnerStatus();
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  const handlePartnerClick = (e) => {
+    e.preventDefault();
+    if (isPartner) {
+      navigate('/partner/dashboard');
+    } else {
+      navigate('/partner/apply');
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -52,7 +93,6 @@ export default function Home() {
           <section id="about" className="py-16 sm:py-24">
             <AboutFounder />
             
-            {/* Button to navigate to dedicated About Page */}
             <div className="mt-10 flex justify-center px-4">
               <Link
                 to="/about"
@@ -270,36 +310,35 @@ export default function Home() {
             </div>
           </section>
 
-
           {/* Partner Network Section Teaser */}
-<section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
-  <div className="rounded-[2.5rem] border border-yellow-500/20 bg-zinc-950 p-8 sm:p-12 text-center relative overflow-hidden shadow-2xl">
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-yellow-400/10 rounded-full blur-[100px] pointer-events-none"></div>
-    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-xs font-extrabold uppercase tracking-widest mb-4">
-      Growth Partner Network
-    </span>
-    <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4">
-      Earn Commissions by Promoting <span className="text-yellow-400">Stock Scorcher</span>
-    </h2>
-    <p className="text-zinc-400 text-sm sm:text-base max-w-2xl mx-auto font-light mb-8">
-      Are you a creator, influencer, or student? Join our certified partner network, get your unique referral link, and earn attractive payouts on every course enrollment.
-    </p>
-    <div className="flex flex-wrap items-center justify-center gap-4">
-      <Link
-        to="/partner/apply"
-        className="rounded-xl bg-yellow-400 hover:bg-yellow-300 px-8 py-4 text-xs sm:text-sm font-black text-black uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(250,204,21,0.25)] active:scale-95"
-      >
-        Become a Partner
-      </Link>
-      <Link
-        to="/partner/leaderboard"
-        className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-8 py-4 text-xs sm:text-sm font-bold text-white uppercase tracking-wider transition-all"
-      >
-        View Leaderboard
-      </Link>
-    </div>
-  </div>
-</section>
+          <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
+            <div className="rounded-[2.5rem] border border-yellow-500/20 bg-zinc-950 p-8 sm:p-12 text-center relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-yellow-400/10 rounded-full blur-[100px] pointer-events-none"></div>
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 text-xs font-extrabold uppercase tracking-widest mb-4">
+                Growth Partner Network
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4">
+                Earn Commissions by Promoting <span className="text-yellow-400">Stock Scorcher</span>
+              </h2>
+              <p className="text-zinc-400 text-sm sm:text-base max-w-2xl mx-auto font-light mb-8">
+                Are you a creator, influencer, or student? Join our certified partner network, get your unique referral link, and earn attractive payouts on every course enrollment.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <button
+                  onClick={handlePartnerClick}
+                  className="rounded-xl bg-yellow-400 hover:bg-yellow-300 px-8 py-4 text-xs sm:text-sm font-black text-black uppercase tracking-wider transition-all shadow-[0_0_25px_rgba(250,204,21,0.25)] active:scale-95 cursor-pointer"
+                >
+                  {isPartner ? "Go to Partner Dashboard" : "Become a Partner"}
+                </button>
+                <Link
+                  to="/partner/leaderboard"
+                  className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-8 py-4 text-xs sm:text-sm font-bold text-white uppercase tracking-wider transition-all"
+                >
+                  View Leaderboard
+                </Link>
+              </div>
+            </div>
+          </section>
 
           <div className="h-px w-full bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 

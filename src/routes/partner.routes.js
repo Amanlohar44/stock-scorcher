@@ -1,34 +1,69 @@
-const express = require('express');
-const router = express.Router();
-const partnerController = require('../controllers/partnerController');
-const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
+import React, { useEffect, useState } from 'react';
+import { getAuth } from 'firebase/auth';
+import axios from 'axios';
+import PartnerDashboard from './PartnerDashboard';
 
-// ==========================================
-// PARTNER FACING ROUTES (Requires standard Auth)
-// ==========================================
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
-// Apply for partnership
-router.post('/apply', verifyToken, partnerController.applyForPartnership);
+export default function PartnerRouteWrapper() {
+  const [partnerData, setPartnerData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const auth = getAuth();
+  const user = auth.currentUser;
 
-// Get Partner Dashboard Analytics
-router.get('/analytics/:partnerId', verifyToken, partnerController.getDashboardAnalytics);
+  useEffect(() => {
+    const checkPartnerStatus = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const token = await user.getIdToken();
+        const res = await axios.get(`${API_BASE_URL}/api/partners/analytics/${user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setPartnerData(res.data);
+      } catch (err) {
+        // If 404, it means they are not a partner yet
+        setPartnerData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-// Get Partner Sales History
-router.get('/sales/:partnerId', verifyToken, partnerController.getSalesHistory);
+    if (user) {
+      checkPartnerStatus();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
-// Request a payout
-router.post('/withdraw', verifyToken, partnerController.requestWithdrawal);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-amber-400 flex justify-center items-center font-bold">
+        Loading Partner Portal...
+      </div>
+    );
+  }
 
+  // If user is logged in and has an existing partner record, show Dashboard directly
+  if (partnerData) {
+    return <PartnerDashboard />;
+  }
 
-// ==========================================
-// ADMIN FACING ROUTES (Requires Admin Auth)
-// ==========================================
-
-// Approve a pending partner
-router.post('/admin/approve', verifyToken, verifyAdmin, partnerController.approvePartner);
-
-// Mark a withdrawal as completed/rejected (Updates Ledger)
-router.post('/admin/withdrawal/process', verifyToken, verifyAdmin, partnerController.processWithdrawal);
-
-
-module.exports = router;
+  // Otherwise, show the Become a Partner / Apply page
+  return (
+    <div className="min-h-screen bg-black text-white flex flex-col justify-center items-center px-4">
+      <div className="max-w-md w-full bg-zinc-950 border border-white/10 p-8 rounded-[2rem] text-center space-y-6">
+        <h2 className="text-2xl font-black">Join Stock Scorcher Growth Partners</h2>
+        <p className="text-zinc-400 text-sm">Monetize your network by promoting AI-powered stock trading education.</p>
+        <a 
+          href="/partner/apply" 
+          className="block w-full bg-amber-400 hover:bg-amber-300 text-black font-black uppercase tracking-wider py-4 rounded-xl transition-all shadow-lg shadow-amber-400/20"
+        >
+          Become a Partner
+        </a>
+      </div>
+    </div>
+  );
+}
