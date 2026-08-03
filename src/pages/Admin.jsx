@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import JoditEditor from "jodit-react"; // 🔥 Added Rich Text Editor
 
 import {
   collection,
@@ -65,10 +66,31 @@ export default function Admin() {
 
   // Direct Upload Blog Form States
   const [blogTitle, setBlogTitle] = useState("");
-  const [blogDesc, setBlogDesc] = useState("");
+  const [blogDesc, setBlogDesc] = useState(""); // Now stores HTML content
   const [blogCategory, setBlogCategory] = useState("");
   const [blogImage, setBlogImage] = useState("");
   const [blogVideo, setBlogVideo] = useState("");
+  const editor = useRef(null); // Ref for Jodit Editor
+
+  // Jodit Editor Config (Dark Mode Styling)
+  const joditConfig = {
+    readonly: false,
+    theme: "dark",
+    placeholder: "Write your detailed market analysis here... (Use bold, links, lists etc.)",
+    style: {
+      background: "#000000",
+      color: "#ffffff",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      borderRadius: "0.75rem",
+    },
+    buttons: [
+      "bold", "italic", "underline", "|", 
+      "ul", "ol", "|", 
+      "font", "fontsize", "brush", "paragraph", "|",
+      "image", "link", "|", 
+      "align", "undo", "redo"
+    ],
+  };
 
   // Coupon Form States
   const [couponCode, setCouponCode] = useState("");
@@ -231,9 +253,16 @@ export default function Admin() {
   const handleVideoUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => { setBlogVideo(reader.result); }; reader.readAsDataURL(file); };
 
   const handleAddBlog = async () => {
-    if (!blogTitle || !blogDesc) { alert("Please fill blog title and description"); return; }
+    if (!blogTitle || !blogDesc) { alert("Please fill blog title and content"); return; }
     try {
-      await addDoc(collection(db, "blogs"), { title: blogTitle, description: blogDesc, category: blogCategory || "General", image: blogImage || "", videoUrl: blogVideo || "", createdAt: new Date() });
+      await addDoc(collection(db, "blogs"), { 
+        title: blogTitle, 
+        description: blogDesc, // This now contains Jodit HTML
+        category: blogCategory || "General", 
+        image: blogImage || "", 
+        videoUrl: blogVideo || "", 
+        createdAt: new Date() 
+      });
       alert("Blog Published Successfully!");
       setBlogTitle(""); setBlogDesc(""); setBlogCategory(""); setBlogImage(""); setBlogVideo(""); loadDashboard();
     } catch (err) { alert("Failed to publish blog"); }
@@ -300,9 +329,6 @@ export default function Admin() {
             </>
           )}
 
-          {/* =========================
-              PARTNERS MANAGEMENT TAB (UPDATED WITH PERCENTAGE EDIT)
-          ========================= */}
           {active === "partners" && (
             <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 shadow-2xl min-h-screen">
               <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
@@ -353,7 +379,6 @@ export default function Admin() {
                             </span>
                           </td>
                           
-                          {/* 🔥 DYNAMIC PERCENTAGE EDIT BLOCK 🔥 */}
                           <td className="p-4">
                             <div className="flex items-center gap-2">
                               <input 
@@ -445,7 +470,7 @@ export default function Admin() {
             <div className="space-y-8">
               <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
                 <h2 className="text-2xl sm:text-3xl font-black text-yellow-400 uppercase tracking-wider mb-2">✍️ Direct Upload Blog & Media Hub</h2>
-                <p className="text-zinc-400 text-xs sm:text-sm font-light mb-6">Type your custom category and upload images/videos directly from your phone gallery.</p>
+                <p className="text-zinc-400 text-xs sm:text-sm font-light mb-6">Create rich content, type your custom category and upload media.</p>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -458,7 +483,18 @@ export default function Admin() {
                     <div><label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Video (Optional)</label><input type="file" accept="video/*" onChange={handleVideoUpload} className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-blue-500 file:text-white hover:file:bg-blue-400 cursor-pointer" />{blogVideo && <p className="text-[10px] text-blue-400 mt-1 font-bold">✓ Video Selected Successfully</p>}</div>
                   </div>
 
-                  <div><label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Full Article Content</label><textarea rows={6} placeholder="Write your blog details here..." value={blogDesc} onChange={(e) => setBlogDesc(e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-4 text-sm text-white focus:border-yellow-400 outline-none" /></div>
+                  {/* 🔥 RICH TEXT EDITOR REPLACES TEXTAREA 🔥 */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Full Article Content (Rich Text)</label>
+                    <div className="text-black jodit-dark-wrapper">
+                      <JoditEditor
+                        ref={editor}
+                        value={blogDesc}
+                        config={joditConfig}
+                        onBlur={newContent => setBlogDesc(newContent)} // Updates content on blur
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <button onClick={handleAddBlog} className="mt-6 rounded-xl bg-yellow-400 hover:bg-yellow-300 px-8 py-4 text-xs font-black text-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] cursor-pointer active:scale-95">🚀 Publish Article</button>
@@ -475,7 +511,10 @@ export default function Admin() {
                           <div>
                             <div className="flex items-center gap-2 mb-1"><span className="px-2.5 py-0.5 rounded-full bg-yellow-400/10 text-yellow-400 text-[9px] font-black uppercase tracking-wider">{blog.category || "General"}</span>{blog.videoUrl && <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase">📹 Video Uploaded</span>}</div>
                             <h4 className="font-black text-white text-base tracking-tight">{blog.title}</h4>
-                            <p className="text-xs text-zinc-400 mt-1 line-clamp-2 font-light">{blog.description}</p>
+                            <div 
+                              className="text-xs text-zinc-400 mt-1 line-clamp-2 font-light"
+                              dangerouslySetInnerHTML={{ __html: blog.description }} // Renders HTML properly in preview
+                            />
                           </div>
                         </div>
                         <button onClick={() => handleDeleteBlog(blog.id)} className="rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition-all cursor-pointer shrink-0">Delete Article</button>
@@ -535,6 +574,26 @@ export default function Admin() {
           )}
         </div>
       </div>
+
+      {/* Basic Jodit dark mode overrides */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .jodit-dark-wrapper .jodit-container {
+          background-color: #000000 !important;
+          border-color: rgba(255,255,255,0.1) !important;
+          color: white !important;
+        }
+        .jodit-dark-wrapper .jodit-toolbar__box {
+          background-color: #121212 !important;
+          border-bottom-color: rgba(255,255,255,0.1) !important;
+        }
+        .jodit-dark-wrapper .jodit-toolbar-button__button {
+          filter: invert(1);
+        }
+        .jodit-dark-wrapper .jodit-wysiwyg {
+          background-color: #000000 !important;
+          color: white !important;
+        }
+      `}} />
     </div>
   );
 }

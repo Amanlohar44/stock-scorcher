@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   Search, Calendar, User, Clock, ArrowUpRight, Tag, Sparkles, 
   X, Share2, ThumbsUp, Bookmark, ChevronLeft, Calculator, CheckCircle2, 
-  Loader2, Flame, Eye, Shield
+  Loader2, Flame, Eye, Shield, TrendingUp, Layers, MessageSquare, Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Firebase Imports
-import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, doc, updateDoc, increment, where } from 'firebase/firestore';
 import { db } from '../firebase'; 
 
 const customEase = [0.22, 1, 0.36, 1];
@@ -31,6 +31,16 @@ const getYouTubeEmbedUrl = (url) => {
   return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
 };
 
+// Smart Content Renderer (Handles both Plain Text and HTML safely)
+const renderContent = (content) => {
+  if (!content) return null;
+  const hasHTML = /<[a-z][\s\S]*>/i.test(content);
+  if (hasHTML) {
+    return <div dangerouslySetInnerHTML={{ __html: content }} />;
+  }
+  return <div className="whitespace-pre-line">{content}</div>;
+};
+
 export default function Blog() {
   const [blogPosts, setBlogPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +50,11 @@ export default function Blog() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeArticle, setActiveArticle] = useState(null);
   
+  // 🔥 Load More State
+  const [visibleCount, setVisibleCount] = useState(6);
+  
+  const urlChecked = useRef(false);
+
   // Interactive State
   const [likedPosts, setLikedPosts] = useState(() => {
     try {
@@ -65,6 +80,12 @@ export default function Blog() {
   // Newsletter State
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribeStatus, setSubscribeStatus] = useState('idle');
+
+  // Comments State
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newComment, setNewComment] = useState({ name: '', text: '' });
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   // Risk Calculator State
   const [accountSize, setAccountSize] = useState(100000);
@@ -129,11 +150,67 @@ export default function Blog() {
     fetchBlogs();
   }, []);
 
-  const { featuredPost, gridPosts } = useMemo(() => {
-    if (!blogPosts || blogPosts?.length === 0) return { featuredPost: null, gridPosts: [] };
+  // Fetch Comments for active article
+  useEffect(() => {
+    if (activeArticle) {
+      const fetchComments = async () => {
+        setLoadingComments(true);
+        try {
+          const q = query(collection(db, 'comments'), where('postId', '==', activeArticle.id));
+          const snapshot = await getDocs(q);
+          const fetchedComments = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            dateObj: doc.data().createdAt?.seconds ? new Date(doc.data().createdAt.seconds * 1000) : new Date(),
+            displayDate: doc.data().createdAt?.seconds 
+              ? new Date(doc.data().createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+              : 'Just now'
+          }));
+          
+          fetchedComments.sort((a, b) => b.dateObj - a.dateObj);
+          setComments(fetchedComments);
+        } catch (error) {
+          console.error("Error fetching comments:", error);
+        } finally {
+          setLoadingComments(false);
+        }
+      };
+      fetchComments();
+    } else {
+      setComments([]);
+    }
+  }, [activeArticle?.id]);
+
+  // Deep Linking logic
+  useEffect(() => {
+    if (blogPosts.length > 0 && !urlChecked.current) {
+      urlChecked.current = true;
+      const params = new URLSearchParams(window.location.search);
+      const articleId = params.get('article');
+      if (articleId) {
+        const targetPost = blogPosts.find(p => p.id === articleId);
+        if (targetPost) {
+          handleOpenArticle(targetPost, true);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blogPosts]);
+
+  // Reset Load More count when search or category changes
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [selectedCategory, searchQuery]);
+
+  const { featuredPost, gridPosts, trendingPosts } = useMemo(() => {
+    if (!blogPosts || blogPosts?.length === 0) return { featuredPost: null, gridPosts: [], trendingPosts: [] };
+    
+    const sortedByViews = [...blogPosts].sort((a, b) => (b.views || 0) - (a.views || 0));
+    
     return {
       featuredPost: blogPosts[0],
-      gridPosts: blogPosts?.slice(1)
+      gridPosts: blogPosts?.slice(1),
+      trendingPosts: sortedByViews.slice(0, 3)
     };
   }, [blogPosts]);
 
@@ -148,10 +225,21 @@ export default function Blog() {
     });
   }, [gridPosts, selectedCategory, searchQuery]);
 
+  // Slice for Load More Pagination
+  const displayedPosts = useMemo(() => {
+    return filteredPosts.slice(0, visibleCount);
+  }, [filteredPosts, visibleCount]);
+
+  const relatedPosts = useMemo(() => {
+    if (!activeArticle) return [];
+    return blogPosts
+      .filter(p => p.category === activeArticle.category && p.id !== activeArticle.id)
+      .slice(0, 2); 
+  }, [activeArticle, blogPosts]);
+
   const toggleLike = async (postId) => {
     const isCurrentlyLiked = likedPosts[postId];
     
-    // Optimistic UI Update
     setLikedPosts((prev) => ({ ...prev, [postId]: !isCurrentlyLiked }));
     setBlogPosts((prevPosts) => 
       prevPosts.map((post) => 
@@ -165,7 +253,6 @@ export default function Blog() {
       setActiveArticle((prev) => ({ ...prev, likesCount: Math.max(0, (prev.likesCount || 0) + (isCurrentlyLiked ? -1 : 1)) }));
     }
 
-    // Firestore Update
     try {
       const postRef = doc(db, 'blogs', postId);
       await updateDoc(postRef, {
@@ -182,15 +269,20 @@ export default function Blog() {
 
   const handleShare = () => {
     if (navigator?.clipboard) {
-      navigator.clipboard.writeText(window?.location?.href);
+      const shareUrl = `${window.location.origin}${window.location.pathname}?article=${activeArticle?.id}`;
+      navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleOpenArticle = async (post) => {
+  const handleOpenArticle = async (post, isInitialLoad = false) => {
     const isFirstViewInSession = !viewedPosts.has(post.id);
     
+    if (!isInitialLoad) {
+      window.history.pushState({}, '', `?article=${post.id}`);
+    }
+
     if (isFirstViewInSession) {
       setViewedPosts((prev) => new Set(prev).add(post.id));
       
@@ -209,6 +301,41 @@ export default function Blog() {
       }
     } else {
       setActiveArticle(post);
+    }
+  };
+
+  const handleCloseArticle = () => {
+    setActiveArticle(null);
+    window.history.pushState({}, '', window.location.pathname);
+  };
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.name.trim() || !newComment.text.trim() || !activeArticle) return;
+
+    setSubmittingComment(true);
+    try {
+      const commentData = {
+        postId: activeArticle.id,
+        authorName: newComment.name.trim(),
+        text: newComment.text.trim(),
+        createdAt: serverTimestamp()
+      };
+      
+      const docRef = await addDoc(collection(db, 'comments'), commentData);
+      
+      setComments(prev => [{
+        id: docRef.id,
+        ...commentData,
+        displayDate: 'Just now',
+        dateObj: new Date()
+      }, ...prev]);
+      
+      setNewComment({ name: '', text: '' });
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -374,7 +501,7 @@ export default function Blog() {
             <>
               {/* Featured Post */}
               {selectedCategory === 'All' && !searchQuery && featuredPost && (
-                <section className="pb-16">
+                <section className="pb-12">
                   <motion.div 
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -419,17 +546,20 @@ export default function Blog() {
                         </h2>
 
                         <p className="text-sm sm:text-base text-neutral-400 font-light leading-relaxed mb-8 line-clamp-3 md:line-clamp-4">
-  {featuredPost?.excerpt}
-</p>
+                          {featuredPost?.excerpt?.replace(/<[^>]+>/g, '') || ''} {/* Strips HTML if excerpt has it */}
+                        </p>
                       </div>
 
                       <div className="pt-6 border-t border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
+                        <div 
+                          onClick={() => handleOpenArticle(featuredPost)}
+                          className="flex items-center gap-3 cursor-pointer group/author"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-white/10 group-hover/author:bg-[#EAB308] group-hover/author:text-black flex items-center justify-center text-xs font-bold text-white transition-colors">
                             <User size={16} />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-white">{featuredPost?.author}</p>
+                            <p className="text-xs font-bold text-white group-hover/author:text-[#EAB308] transition-colors">{featuredPost?.author}</p>
                             <p className="text-[11px] text-neutral-500">{featuredPost?.date}</p>
                           </div>
                         </div>
@@ -446,10 +576,40 @@ export default function Blog() {
                 </section>
               )}
 
+              {/* Trending Posts Section */}
+              {selectedCategory === 'All' && !searchQuery && trendingPosts?.length > 1 && (
+                <section className="pb-16">
+                  <div className="flex items-center gap-2 mb-6">
+                    <TrendingUp className="text-[#EAB308]" size={20} />
+                    <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Trending Now</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {trendingPosts.map((post, idx) => (
+                      <div 
+                        key={post.id}
+                        onClick={() => handleOpenArticle(post)}
+                        className="group flex items-center gap-4 bg-[#080808] border border-white/10 hover:border-white/30 p-3 rounded-2xl cursor-pointer transition-all hover:bg-[#121212]"
+                      >
+                        <div className="font-black text-4xl text-white/5 group-hover:text-[#EAB308]/20 transition-colors w-8 text-center">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-white text-sm font-bold line-clamp-2 group-hover:text-[#EAB308] transition-colors">{post.title}</h4>
+                          <span className="text-[10px] text-neutral-500 font-bold uppercase flex items-center gap-1 mt-1">
+                            <Eye size={10} /> {post.views} Views
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Blog Grid */}
               <section className="pb-16">
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Layers size={22} className="text-[#EAB308]" />
                     Latest Articles <span className="text-xs ml-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-400 font-mono">{filteredPosts?.length || 0}</span>
                   </h2>
                 </div>
@@ -462,100 +622,114 @@ export default function Blog() {
                     </button>
                   </div>
                 ) : (
-                  <motion.div 
-                    initial="hidden"
-                    animate="visible"
-                    variants={staggerContainer}
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
-                  >
-                    {filteredPosts?.map((post) => {
-                      const isLiked = likedPosts?.[post?.id];
-                      const isBookmarked = bookmarkedPosts?.[post?.id];
+                  <>
+                    <motion.div 
+                      initial="hidden"
+                      animate="visible"
+                      variants={staggerContainer}
+                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
+                    >
+                      {displayedPosts?.map((post) => {
+                        const isLiked = likedPosts?.[post?.id];
+                        const isBookmarked = bookmarkedPosts?.[post?.id];
 
-                      return (
-                        <motion.div 
-                          key={post?.id}
-                          variants={fadeUp}
-                          className="group relative bg-[#060606] border border-white/10 hover:border-white/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 flex flex-col justify-between shadow-xl"
-                        >
-                          <div>
-                            {/* Thumbnail */}
-                            <div className="relative h-52 w-full overflow-hidden border-b border-white/10 bg-[#121212]">
-                              <img 
-                                src={post?.image} 
-                                alt={post?.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-85"
-                              />
-                              <div className="absolute top-4 left-4">
-                                <span className="bg-black/70 backdrop-blur-md text-white border border-white/20 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-                                  {post?.category}
-                                </span>
+                        return (
+                          <motion.div 
+                            key={post?.id}
+                            variants={fadeUp}
+                            className="group relative bg-[#060606] border border-white/10 hover:border-white/30 rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 flex flex-col justify-between shadow-xl"
+                          >
+                            <div>
+                              {/* Thumbnail */}
+                              <div className="relative h-52 w-full overflow-hidden border-b border-white/10 bg-[#121212]">
+                                <img 
+                                  src={post?.image} 
+                                  alt={post?.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-85"
+                                />
+                                <div className="absolute top-4 left-4">
+                                  <span className="bg-black/70 backdrop-blur-md text-white border border-white/20 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                                    {post?.category}
+                                  </span>
+                                </div>
+
+                                <div className="absolute top-4 right-4">
+                                  <button
+                                    onClick={(e) => { e?.stopPropagation(); toggleBookmark(post?.id); }}
+                                    className={`p-2.5 rounded-xl backdrop-blur-md border transition-all cursor-pointer ${
+                                      isBookmarked ? 'bg-[#EAB308] text-black border-[#EAB308]' : 'bg-black/60 border-white/20 text-white hover:text-[#EAB308]'
+                                    }`}
+                                    title="Bookmark"
+                                  >
+                                    <Bookmark size={14} />
+                                  </button>
+                                </div>
                               </div>
 
-                              <div className="absolute top-4 right-4">
-                                <button
-                                  onClick={(e) => { e?.stopPropagation(); toggleBookmark(post?.id); }}
-                                  className={`p-2.5 rounded-xl backdrop-blur-md border transition-all cursor-pointer ${
-                                    isBookmarked ? 'bg-[#EAB308] text-black border-[#EAB308]' : 'bg-black/60 border-white/20 text-white hover:text-[#EAB308]'
-                                  }`}
-                                  title="Bookmark"
+                              {/* Content */}
+                              <div className="p-6 sm:p-8">
+                                <div className="flex items-center gap-3 text-xs text-neutral-400 mb-3 font-medium">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={12} />
+                                    {post?.date}
+                                  </span>
+                                  <span>&bull;</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock size={12} />
+                                    {post?.readTime}
+                                  </span>
+                                </div>
+
+                                <h3 
+                                  onClick={() => handleOpenArticle(post)}
+                                  className="text-xl font-bold text-white tracking-tight mb-3 group-hover:text-[#EAB308] transition-colors line-clamp-2 cursor-pointer"
                                 >
-                                  <Bookmark size={14} />
-                                </button>
+                                  {post?.title}
+                                </h3>
+
+                                <p className="text-sm text-neutral-400 font-light leading-relaxed line-clamp-3 mb-6">
+                                  {post?.excerpt?.replace(/<[^>]+>/g, '') || ''}
+                                </p>
                               </div>
                             </div>
 
-                            {/* Content */}
-                            <div className="p-6 sm:p-8">
-                              <div className="flex items-center gap-3 text-xs text-neutral-400 mb-3 font-medium">
-                                <span className="flex items-center gap-1">
-                                  <Calendar size={12} />
-                                  {post?.date}
-                                </span>
-                                <span>&bull;</span>
-                                <span className="flex items-center gap-1">
-                                  <Clock size={12} />
-                                  {post?.readTime}
-                                </span>
-                              </div>
-
-                              <h3 
-                                onClick={() => handleOpenArticle(post)}
-                                className="text-xl font-bold text-white tracking-tight mb-3 group-hover:text-[#EAB308] transition-colors line-clamp-2 cursor-pointer"
+                            {/* Footer */}
+                            <div className="px-6 sm:px-8 pb-8 pt-0 flex items-center justify-between border-t border-white/5 pt-5">
+                              <button
+                                onClick={() => toggleLike(post?.id)}
+                                className={`flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                                  isLiked ? 'text-red-400' : 'text-neutral-500 hover:text-white'
+                                }`}
                               >
-                                {post?.title}
-                              </h3>
+                                <ThumbsUp size={14} className={isLiked ? 'fill-red-400' : ''} />
+                                <span>{post?.likesCount || 0}</span>
+                              </button>
 
-                              <p className="text-sm text-neutral-400 font-light leading-relaxed line-clamp-3 mb-6">
-                                {post?.excerpt}
-                              </p>
+                              <button 
+                                onClick={() => handleOpenArticle(post)}
+                                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#EAB308] hover:text-white transition-colors cursor-pointer"
+                              >
+                                Read Article <ArrowUpRight size={15} />
+                              </button>
                             </div>
-                          </div>
 
-                          {/* Footer */}
-                          <div className="px-6 sm:px-8 pb-8 pt-0 flex items-center justify-between border-t border-white/5 pt-5">
-                            <button
-                              onClick={() => toggleLike(post?.id)}
-                              className={`flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                                isLiked ? 'text-red-400' : 'text-neutral-500 hover:text-white'
-                              }`}
-                            >
-                              <ThumbsUp size={14} className={isLiked ? 'fill-red-400' : ''} />
-                              <span>{post?.likesCount || 0}</span>
-                            </button>
+                          </motion.div>
+                        );
+                      })}
+                    </motion.div>
 
-                            <button 
-                              onClick={() => handleOpenArticle(post)}
-                              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#EAB308] hover:text-white transition-colors cursor-pointer"
-                            >
-                              Read Article <ArrowUpRight size={15} />
-                            </button>
-                          </div>
-
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
+                    {/* 🔥 LOAD MORE BUTTON 🔥 */}
+                    {visibleCount < filteredPosts?.length && (
+                      <motion.div variants={fadeUp} className="flex justify-center mt-12">
+                        <button
+                          onClick={() => setVisibleCount(prev => prev + 6)}
+                          className="bg-transparent border border-[#EAB308]/50 text-[#EAB308] hover:bg-[#EAB308] hover:text-black font-bold text-sm px-8 py-3.5 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(250,204,21,0.1)] cursor-pointer"
+                        >
+                          Load More Articles
+                        </button>
+                      </motion.div>
+                    )}
+                  </>
                 )}
               </section>
             </>
@@ -710,7 +884,7 @@ export default function Blog() {
               
               <div className="flex items-center justify-between pb-5 border-b border-white/10 mb-8 sticky top-0 bg-[#0a0a0a]/95 backdrop-blur-md z-20 pt-1">
                 <button
-                  onClick={() => setActiveArticle(null)}
+                  onClick={handleCloseArticle}
                   className="inline-flex items-center gap-2 text-xs sm:text-sm text-neutral-400 hover:text-white transition-colors cursor-pointer font-bold"
                 >
                   <ChevronLeft size={16} /> Back to Articles
@@ -739,17 +913,17 @@ export default function Blog() {
                   <button
                     onClick={handleShare}
                     className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-neutral-400 hover:text-white transition-all relative cursor-pointer"
-                    title="Share"
+                    title="Share Link"
                   >
                     <Share2 size={16} />
                     {copied && (
                       <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#EAB308] text-black font-bold text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap">
-                        Copied!
+                        Link Copied!
                       </span>
                     )}
                   </button>
                   <button
-                    onClick={() => setActiveArticle(null)}
+                    onClick={handleCloseArticle}
                     className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-neutral-400 hover:text-white transition-all cursor-pointer"
                   >
                     <X size={18} />
@@ -795,11 +969,12 @@ export default function Blog() {
                 </div>
               )}
 
-              <div className="prose prose-invert max-w-none text-neutral-300 text-sm sm:text-base leading-relaxed space-y-5 mb-10 whitespace-pre-line font-light">
-                {activeArticle?.content}
+              {/* Enhanced Content Renderer */}
+              <div className="prose prose-invert max-w-none text-neutral-300 text-sm sm:text-base leading-relaxed space-y-5 mb-10 font-light">
+                {renderContent(activeArticle?.content)}
               </div>
 
-              <div className="bg-black border border-white/10 rounded-2xl p-6 flex items-center gap-4">
+              <div className="bg-black border border-white/10 rounded-2xl p-6 flex items-center gap-4 mb-10">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#EAB308] to-amber-600 p-0.5 flex-shrink-0">
                   <div className="w-full h-full bg-[#0a0a0a] rounded-full flex items-center justify-center font-black text-white text-base">
                     AL
@@ -813,6 +988,102 @@ export default function Blog() {
                   <p className="text-xs text-neutral-400 mt-1 font-light">Founder & Lead Trader at Stock Scorcher. Specialized in price action trading, market structure, and retail risk management.</p>
                 </div>
               </div>
+
+              {/* Discussion & Comments Section */}
+              <div className="pt-10 border-t border-white/10 mb-10">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <MessageSquare size={20} className="text-[#EAB308]" /> 
+                  Community Discussion
+                  <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-neutral-400 font-normal">{comments.length}</span>
+                </h3>
+
+                {/* Comment Form */}
+                <form onSubmit={handleSubmitComment} className="bg-[#121212] border border-white/10 p-5 rounded-2xl mb-8">
+                  <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={newComment.name}
+                      onChange={(e) => setNewComment({...newComment, name: e.target.value})}
+                      className="bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3 rounded-xl text-sm outline-none transition-colors sm:w-1/3"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Share your thoughts on this analysis..."
+                      value={newComment.text}
+                      onChange={(e) => setNewComment({...newComment, text: e.target.value})}
+                      className="bg-black border border-white/10 focus:border-[#EAB308] text-white px-4 py-3 rounded-xl text-sm outline-none transition-colors flex-1"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submittingComment || !newComment.name.trim() || !newComment.text.trim()}
+                      className="bg-[#EAB308] hover:bg-yellow-400 text-black font-bold text-sm px-6 py-2.5 rounded-xl transition-all duration-300 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {submittingComment ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                      Post Comment
+                    </button>
+                  </div>
+                </form>
+
+                {/* Comments List */}
+                <div className="space-y-5">
+                  {loadingComments ? (
+                    <div className="flex items-center gap-3 text-neutral-500 text-sm py-4">
+                      <Loader2 size={16} className="animate-spin" /> Loading discussion...
+                    </div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-center py-8 bg-[#121212] border border-white/5 rounded-2xl">
+                      <MessageSquare size={24} className="text-neutral-600 mx-auto mb-2" />
+                      <p className="text-neutral-400 text-sm font-light">No comments yet. Be the first to share your thoughts!</p>
+                    </div>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-4 p-5 bg-[#0a0a0a] border border-white/5 rounded-2xl hover:border-white/10 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[#EAB308] font-bold flex-shrink-0 border border-white/10">
+                          {comment.authorName?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h5 className="text-white text-sm font-bold">{comment.authorName}</h5>
+                            <span className="text-[10px] text-neutral-500">{comment.displayDate}</span>
+                          </div>
+                          <p className="text-neutral-300 text-sm font-light leading-relaxed">{comment.text}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Related Posts Section */}
+              {relatedPosts?.length > 0 && (
+                <div className="pt-8 border-t border-white/10">
+                  <h3 className="text-lg font-bold text-white mb-6">Read Next in {activeArticle?.category}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {relatedPosts.map((relatedPost) => (
+                      <div 
+                        key={relatedPost.id}
+                        onClick={() => handleOpenArticle(relatedPost)}
+                        className="group flex gap-4 bg-[#121212] border border-white/5 hover:border-white/20 p-3 rounded-2xl cursor-pointer transition-all"
+                      >
+                        <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-black">
+                          <img src={relatedPost.image} alt={relatedPost.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100" />
+                        </div>
+                        <div className="flex flex-col justify-center">
+                          <h4 className="text-white text-sm font-bold line-clamp-2 group-hover:text-[#EAB308] transition-colors mb-1.5">{relatedPost.title}</h4>
+                          <span className="text-[10px] text-neutral-500 font-bold uppercase flex items-center gap-1">
+                            <Eye size={10} /> {relatedPost.views} Views
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </motion.div>
           </div>
