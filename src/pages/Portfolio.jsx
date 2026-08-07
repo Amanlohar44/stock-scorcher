@@ -1,278 +1,350 @@
-import { useEffect, useState } from "react";
-import {
-  FaWallet,
-  FaChartPie,
-  FaShieldAlt,
-  FaSync,
-  FaArrowUp,
-  FaArrowDown,
-  FaCheckCircle,
-  FaCrown,
-} from "react-icons/fa";
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Briefcase, TrendingUp, TrendingDown, Plus, 
+  Download, PieChart, Activity, IndianRupee, ArrowUpRight, ArrowDownRight
+} from 'lucide-react';
 
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
-import { getStockQuote } from "../services/finnhub";
+// ==========================================
+// MOCK DATA: PRODUCTION-READY PORTFOLIO
+// ==========================================
+const INITIAL_HOLDINGS = [
+  { id: 1, symbol: 'RELIANCE', name: 'Reliance Industries', avgPrice: 2450.00, currentPrice: 2950.45, qty: 50, sector: 'Energy' },
+  { id: 2, symbol: 'TCS', name: 'Tata Consultancy Services', avgPrice: 3200.00, currentPrice: 3920.10, qty: 25, sector: 'IT' },
+  { id: 3, symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', avgPrice: 1550.00, currentPrice: 1450.60, qty: 100, sector: 'Finance' },
+  { id: 4, symbol: 'INFY', name: 'Infosys Ltd', avgPrice: 1600.00, currentPrice: 1420.30, qty: 40, sector: 'IT' },
+  { id: 5, symbol: 'L&T', name: 'Larsen & Toubro', avgPrice: 2800.00, currentPrice: 3450.75, qty: 15, sector: 'Infrastructure' },
+];
 
-import MemberSidebar from "../components/member/MemberSidebar";
-import MemberTopbar from "../components/member/MemberTopbar";
+const SECTOR_COLORS = {
+  'Energy': 'bg-red-500',
+  'IT': 'bg-blue-500',
+  'Finance': 'bg-emerald-500',
+  'Infrastructure': 'bg-purple-500',
+  'Other': 'bg-zinc-500'
+};
 
 export default function Portfolio() {
-  const [balance, setBalance] = useState(100000);
-  const [holdings, setHoldings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [holdings, setHoldings] = useState(INITIAL_HOLDINGS);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  useEffect(() => {
-    loadPortfolioData();
-  }, []);
+  // ==========================================
+  // PORTFOLIO CALCULATIONS
+  // ==========================================
+  const portfolioStats = useMemo(() => {
+    let totalInvested = 0;
+    let currentValue = 0;
+    let dayChangeAmount = 0; // Simulated day change (normally fetched from live market data)
+    
+    const sectorAllocation = {};
 
-  const loadPortfolioData = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    holdings.forEach(stock => {
+      const invested = stock.avgPrice * stock.qty;
+      const current = stock.currentPrice * stock.qty;
+      
+      totalInvested += invested;
+      currentValue += current;
+      
+      // Simulating a random daily change between -2% and +2% for UI demonstration
+      const simulatedDailyReturn = current * (Math.random() * 0.04 - 0.02);
+      dayChangeAmount += simulatedDailyReturn;
 
-    try {
-      const paperRef = doc(db, "paperTrading", user.uid);
-      const paperSnap = await getDoc(paperRef);
-
-      if (paperSnap.exists()) {
-        const data = paperSnap.data();
-        setBalance(data.balance ?? 100000);
-        setHoldings(data.holdings ?? []);
+      // Sector calculation
+      if (sectorAllocation[stock.sector]) {
+        sectorAllocation[stock.sector] += current;
+      } else {
+        sectorAllocation[stock.sector] = current;
       }
-    } catch (error) {
-      console.error("Error loading portfolio:", error);
-    } finally {
-      setLoading(false);
-    }
+    });
+
+    const totalPnL = currentValue - totalInvested;
+    const totalPnLPercentage = (totalPnL / totalInvested) * 100;
+    const dayChangePercentage = (dayChangeAmount / currentValue) * 100;
+
+    // Convert sector allocation to percentages
+    const sectors = Object.keys(sectorAllocation).map(sector => ({
+      name: sector,
+      value: sectorAllocation[sector],
+      percentage: ((sectorAllocation[sector] / currentValue) * 100).toFixed(1),
+      color: SECTOR_COLORS[sector] || SECTOR_COLORS['Other']
+    })).sort((a, b) => b.value - a.value);
+
+    return { totalInvested, currentValue, totalPnL, totalPnLPercentage, dayChangeAmount, dayChangePercentage, sectors };
+  }, [holdings]);
+
+  // ==========================================
+  // EXPORT REPORT LOGIC
+  // ==========================================
+  const exportPortfolio = () => {
+    const headers = ['Symbol', 'Company', 'Quantity', 'Avg Price', 'Current Price', 'Invested', 'Current Value', 'P&L'];
+    const csvData = holdings.map(s => [
+      s.symbol, 
+      s.name, 
+      s.qty, 
+      s.avgPrice.toFixed(2), 
+      s.currentPrice.toFixed(2), 
+      (s.avgPrice * s.qty).toFixed(2), 
+      (s.currentPrice * s.qty).toFixed(2),
+      ((s.currentPrice - s.avgPrice) * s.qty).toFixed(2)
+    ]);
+    
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...csvData.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `portfolio_report_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
-
-  const handleRefresh = async () => {
-    if (holdings.length === 0) {
-      alert("No holdings to refresh");
-      return;
-    }
-
-    setRefreshing(true);
-    try {
-      const updatedHoldings = await Promise.all(
-        holdings.map(async (item) => {
-          try {
-            const data = await getStockQuote(item.symbol);
-            return {
-              ...item,
-              currentPrice: data.current || item.averageBuyPrice,
-            };
-          } catch {
-            return item;
-          }
-        })
-      );
-      setHoldings(updatedHoldings);
-      alert("✅ Portfolio valuations updated successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to refresh portfolio");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Calculations
-  const investedAmount = holdings.reduce(
-    (acc, item) => acc + item.quantity * item.averageBuyPrice,
-    0
-  );
-
-  const currentMarketValue = holdings.reduce(
-    (acc, item) => acc + item.quantity * (item.currentPrice || item.averageBuyPrice),
-    0
-  );
-
-  const totalNetWorth = balance + currentMarketValue;
-  const totalPnL = currentMarketValue - investedAmount;
-  const pnlPercentage = investedAmount > 0 ? (totalPnL / investedAmount) * 100 : 0;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent mx-auto" />
-          <p className="text-yellow-400 text-xs font-bold tracking-wider uppercase animate-pulse">
-            Analyzing Portfolio Assets...
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-x-hidden selection:bg-yellow-400 selection:text-black">
-      <MemberSidebar />
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-zinc-900 dark:text-zinc-50 pt-8 pb-20 px-4 sm:px-6 lg:px-8">
+      
+      {/* HEADER SECTION */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
+            <Briefcase className="text-red-600" size={32} />
+            My Portfolio
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-sm sm:text-base">
+            Track your investments, analyze returns, and manage asset allocation.
+          </p>
+        </div>
 
-      <div className="flex-1 min-w-0 w-full">
-        <MemberTopbar />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={exportPortfolio}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-red-600 dark:hover:border-red-600 transition-colors font-medium text-sm shadow-sm"
+          >
+            <Download size={16} className="text-red-600" />
+            Report
+          </button>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium text-sm shadow-lg shadow-red-600/20"
+          >
+            <Plus size={16} />
+            Add Trade
+          </button>
+        </div>
+      </div>
 
-        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* TOP KPI CARDS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Current Value</p>
+            <h3 className="text-2xl font-bold flex items-center">
+              <IndianRupee size={22} className="mr-1" />
+              {portfolioStats.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </h3>
+          </motion.div>
 
-          {/* HEADER BANNER */}
-          <div className="bg-gradient-to-r from-yellow-400/10 via-zinc-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/20 px-4 py-1 text-yellow-400 text-xs font-black uppercase tracking-wider">
-                  <FaCrown className="text-yellow-400" /> Institutional Asset Manager
-                </div>
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight">
-                  Pro Portfolio Allocation 📊
-                </h1>
-                <p className="text-gray-300 text-xs sm:text-sm">
-                  Comprehensive breakdown of your capital allocation, net worth, and value creation.
-                </p>
-              </div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Total Invested</p>
+            <h3 className="text-2xl font-bold flex items-center">
+              <IndianRupee size={22} className="mr-1" />
+              {portfolioStats.totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </h3>
+          </motion.div>
 
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center justify-center gap-2 bg-yellow-400 text-black px-5 py-3 rounded-2xl font-black text-xs hover:bg-yellow-300 transition shadow-lg cursor-pointer shrink-0"
-              >
-                <FaSync className={refreshing ? "animate-spin" : ""} /> Sync Valuations
-              </button>
-            </div>
-          </div>
-
-          {/* METRICS GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Net Worth</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-yellow-400">
-                ₹{totalNetWorth.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
-              <p className="text-[10px] text-zinc-500">Cash + Live Asset Valuation</p>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Current Market Value</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">
-                ₹{currentMarketValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
-              <p className="text-[10px] text-zinc-500">Active equity holdings</p>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Invested Capital</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">
-                ₹{investedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
-              <p className="text-[10px] text-zinc-500">Initial purchase cost</p>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Overall Returns (P&L)</p>
-              <h2 className={`text-2xl sm:text-3xl font-black ${totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {totalPnL >= 0 ? "+" : ""}₹{totalPnL.toLocaleString("en-IN", { maximumFractionDigits: 2 })} ({pnlPercentage.toFixed(2)}%)
-              </h2>
-              <p className="text-[10px] text-zinc-500">Cumulative portfolio return</p>
-            </div>
-          </div>
-
-          {/* VALUE INVESTING HEALTH CARD */}
-          <div className="rounded-3xl border border-yellow-500/30 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-6 md:p-8 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h3 className="text-xl font-black text-white flex items-center gap-2">
-                <FaShieldAlt className="text-yellow-400" /> Value Investing Health Score
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+            <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-current to-transparent opacity-5 pointer-events-none" style={{ color: portfolioStats.totalPnL >= 0 ? '#22c55e' : '#ef4444' }}></div>
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Overall P&L</p>
+            <div className="flex items-end gap-2">
+              <h3 className={`text-2xl font-bold flex items-center ${portfolioStats.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {portfolioStats.totalPnL >= 0 ? '+' : ''}{portfolioStats.totalPnL.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
               </h3>
-              <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">
-                Grade: A+ (Optimized)
+              <span className={`text-sm font-bold pb-1 flex items-center ${portfolioStats.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                ({portfolioStats.totalPnLPercentage > 0 ? '+' : ''}{portfolioStats.totalPnLPercentage.toFixed(2)}%)
+                {portfolioStats.totalPnL >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
               </span>
             </div>
+          </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-2">
-                <div className="text-yellow-400 font-bold text-sm flex items-center gap-2">
-                  <FaCheckCircle /> Margin of Safety
-                </div>
-                <p className="text-xs text-zinc-400">Your equity allocation maintains strict risk boundaries against sudden market drawdowns.</p>
-              </div>
-
-              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-2">
-                <div className="text-yellow-400 font-bold text-sm flex items-center gap-2">
-                  <FaCheckCircle /> Capital Liquidity
-                </div>
-                <p className="text-xs text-zinc-400">{( (balance / totalNetWorth) * 100 ).toFixed(1)}% of total net worth is held in liquid virtual cash for tactical dips.</p>
-              </div>
-
-              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-2">
-                <div className="text-yellow-400 font-bold text-sm flex items-center gap-2">
-                  <FaCheckCircle /> Diversification Index
-                </div>
-                <p className="text-xs text-zinc-400">Tracking {holdings.length} unique asset streams across institutional sectors.</p>
-              </div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Today's P&L</p>
+            <div className="flex items-end gap-2">
+              <h3 className={`text-2xl font-bold flex items-center ${portfolioStats.dayChangeAmount >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {portfolioStats.dayChangeAmount >= 0 ? '+' : ''}{portfolioStats.dayChangeAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </h3>
+              <span className={`text-sm font-bold pb-1 flex items-center ${portfolioStats.dayChangeAmount >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                ({portfolioStats.dayChangePercentage > 0 ? '+' : ''}{portfolioStats.dayChangePercentage.toFixed(2)}%)
+              </span>
             </div>
+          </motion.div>
+        </div>
+
+        {/* MIDDLE SECTION: SECTOR ALLOCATION & AI INSIGHTS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Sector Allocation Bar */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="lg:col-span-2 bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
+              <PieChart className="text-red-600" size={20} />
+              Sector Allocation
+            </h3>
+            
+            {/* Visual Bar */}
+            <div className="w-full h-4 rounded-full flex overflow-hidden mb-6">
+              {portfolioStats.sectors.map((sector, idx) => (
+                <div 
+                  key={idx} 
+                  style={{ width: `${sector.percentage}%` }} 
+                  className={`${sector.color} h-full transition-all duration-1000 ease-out`}
+                  title={`${sector.name}: ${sector.percentage}%`}
+                ></div>
+              ))}
+            </div>
+
+            {/* Legends */}
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              {portfolioStats.sectors.map((sector, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${sector.color}`}></div>
+                  <span className="text-sm font-medium">{sector.name}</span>
+                  <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">{sector.percentage}%</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* AI Insights (Simulated) */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-bl-full -z-10 group-hover:bg-red-600/10 transition-colors"></div>
+            <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+              <Activity className="text-red-600" size={20} />
+              AI Portfolio Score
+            </h3>
+            <div className="flex items-end gap-2 mb-4">
+              <span className="text-5xl font-black text-zinc-900 dark:text-white">82</span>
+              <span className="text-lg font-bold text-zinc-500 mb-1">/100</span>
+            </div>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2 text-sm">
+                <span className="text-green-500 mt-0.5">●</span>
+                <span className="text-zinc-600 dark:text-zinc-300">Excellent large-cap diversification.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm">
+                <span className="text-yellow-500 mt-0.5">●</span>
+                <span className="text-zinc-600 dark:text-zinc-300">Over-allocated in IT sector (32%). Consider hedging.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm">
+                <span className="text-red-500 mt-0.5">●</span>
+                <span className="text-zinc-600 dark:text-zinc-300">HDFCBANK is dragging overall momentum.</span>
+              </li>
+            </ul>
+          </motion.div>
+
+        </div>
+
+        {/* BOTTOM SECTION: HOLDINGS TABLE */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-zinc-200 dark:border-zinc-800">
+            <h2 className="font-bold text-lg">Your Holdings</h2>
           </div>
+          
+          <div className="overflow-x-auto w-full custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-zinc-950/50 border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider">Asset</th>
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Qty</th>
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Avg Price</th>
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">LTP</th>
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Invested</th>
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Current Value</th>
+                  <th className="py-4 px-6 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Overall P&L</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                <AnimatePresence>
+                  {holdings.map((stock) => {
+                    const invested = stock.avgPrice * stock.qty;
+                    const current = stock.currentPrice * stock.qty;
+                    const pnlAmount = current - invested;
+                    const pnlPercentage = (pnlAmount / invested) * 100;
+                    const isProfit = pnlAmount >= 0;
 
-          {/* HOLDINGS DISTRIBUTION TABLE */}
-          <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 md:p-8 shadow-2xl space-y-6">
-            <h3 className="text-xl font-black text-white">Asset Distribution & Holdings</h3>
-
-            {holdings.length === 0 ? (
-              <div className="text-center py-16 space-y-3">
-                <FaChartPie className="mx-auto text-5xl text-zinc-700" />
-                <p className="text-zinc-400 font-semibold text-sm">No assets found in your portfolio.</p>
-                <p className="text-zinc-600 text-xs">Execute paper trades to populate your asset distribution metrics.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {holdings.map((item) => {
-                  const currentPrice = item.currentPrice || item.averageBuyPrice;
-                  const itemValue = item.quantity * currentPrice;
-                  const itemCost = item.quantity * item.averageBuyPrice;
-                  const itemPnL = itemValue - itemCost;
-                  const weight = currentMarketValue > 0 ? (itemValue / currentMarketValue) * 100 : 0;
-
-                  return (
-                    <div
-                      key={item.symbol}
-                      className="bg-black/60 border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 font-black text-lg">
-                          {item.symbol.slice(0, 3)}
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-black text-white">{item.symbol}</h4>
-                          <p className="text-xs text-zinc-400 font-semibold">{item.quantity} Shares | Weight: {weight.toFixed(1)}%</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-4 text-left sm:text-right">
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">Value</p>
-                          <p className="text-sm font-bold text-white mt-0.5">₹{itemValue.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">Avg Cost</p>
-                          <p className="text-sm font-bold text-white mt-0.5">₹{item.averageBuyPrice.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">P&L</p>
-                          <p className={`text-sm font-black mt-0.5 ${itemPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
-                            {itemPnL >= 0 ? "+" : ""}₹{itemPnL.toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    return (
+                      <motion.tr 
+                        key={stock.id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm group-hover:text-red-600 transition-colors">{stock.symbol}</span>
+                            <span className="text-xs text-zinc-500 truncate max-w-[150px]">{stock.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-right font-medium text-sm">{stock.qty}</td>
+                        <td className="py-4 px-6 text-right text-sm">₹{stock.avgPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="py-4 px-6 text-right text-sm font-medium">₹{stock.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="py-4 px-6 text-right text-sm text-zinc-500">₹{invested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                        <td className="py-4 px-6 text-right text-sm font-bold">₹{current.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                        <td className="py-4 px-6 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className={`text-sm font-bold flex items-center gap-1 ${isProfit ? 'text-green-500' : 'text-red-500'}`}>
+                              {isProfit ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                              {isProfit ? '+' : ''}₹{Math.abs(pnlAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                            </span>
+                            <span className={`text-xs font-bold ${isProfit ? 'text-green-500/80' : 'text-red-500/80'}`}>
+                              {isProfit ? '+' : ''}{pnlPercentage.toFixed(2)}%
+                            </span>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </AnimatePresence>
+              </tbody>
+            </table>
           </div>
-
-        </main>
+        </motion.div>
       </div>
+
+      {/* ADD TRADE MODAL (SIMULATED UI) */}
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            >
+              <h3 className="text-xl font-bold mb-4">Add Manual Trade</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Stock Symbol</label>
+                  <input type="text" placeholder="e.g. TATAMOTORS" className="w-full bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Quantity</label>
+                    <input type="number" placeholder="0" className="w-full bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Buy Price</label>
+                    <input type="number" placeholder="₹0.00" className="w-full bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600" />
+                  </div>
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-xl font-medium transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-700">Cancel</button>
+                  <button onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-medium transition-colors hover:bg-red-700 shadow-lg shadow-red-600/20">Save Trade</button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

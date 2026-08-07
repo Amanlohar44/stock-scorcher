@@ -1,584 +1,461 @@
-import { useEffect, useState } from "react";
-import {
-  FaChartLine,
-  FaWallet,
-  FaArrowUp,
-  FaArrowDown,
-  FaSync,
-  FaBolt,
-  FaShieldAlt,
-  FaSearchDollar,
-  FaCheckCircle,
-} from "react-icons/fa";
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Wallet, TrendingUp, TrendingDown, ShoppingCart, 
+  History, Activity, Award, CheckCircle2, ChevronDown, Crosshair
+} from 'lucide-react';
 
-import {
-  doc,
-  getDoc,
-  setDoc,
-} from "firebase/firestore";
-
-import { auth, db } from "../firebase";
-import { getStockQuote } from "../services/finnhub";
-
-import MemberSidebar from "../components/member/MemberSidebar";
-import MemberTopbar from "../components/member/MemberTopbar";
+// ==========================================
+// INITIAL MOCK DATA
+// ==========================================
+const INITIAL_BALANCE = 1000000; // 10 Lakhs virtual margin
+const INITIAL_POSITIONS = [
+  { id: 1, symbol: 'RELIANCE', type: 'BUY', qty: 100, avgPrice: 2900.50, currentPrice: 2950.45, pnl: 4995 },
+  { id: 2, symbol: 'HDFCBANK', type: 'SELL', qty: 200, avgPrice: 1500.00, currentPrice: 1450.60, pnl: 9880 },
+];
+const INITIAL_ORDERS = [
+  { id: 101, time: '10:15 AM', symbol: 'RELIANCE', type: 'BUY', qty: 100, price: 2900.50, status: 'Completed' },
+  { id: 102, time: '09:45 AM', symbol: 'HDFCBANK', type: 'SELL', qty: 200, price: 1500.00, status: 'Completed' },
+];
 
 export default function PaperTrading() {
-  const [balance, setBalance] = useState(100000);
-  const [symbol, setSymbol] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [holdings, setHoldings] = useState([]);
+  const [balance, setBalance] = useState(INITIAL_BALANCE);
+  const [positions, setPositions] = useState(INITIAL_POSITIONS);
+  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  
+  // Order Entry Form State
+  const [orderForm, setOrderForm] = useState({
+    symbol: '',
+    action: 'BUY', // BUY or SELL
+    orderType: 'MARKET', // MARKET or LIMIT
+    qty: '',
+    price: ''
+  });
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [fetchingPrice, setFetchingPrice] = useState(false);
-  const [livePrice, setLivePrice] = useState(null);
+  const [toastMessage, setToastMessage] = useState('');
 
-  // Quick preset stocks for professional traders
-  const quickStocks = ["AAPL", "TSLA", "NVDA", "MSFT", "GOOGL", "AMZN"];
+  // ==========================================
+  // CALCULATIONS
+  // ==========================================
+  const portfolioStats = useMemo(() => {
+    let openPnl = 0;
+    let investedMargin = 0;
 
-  /* =========================
-     LOAD FIREBASE DATA
-  ========================= */
-  useEffect(() => {
-    const loadPaperTrading = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    positions.forEach(pos => {
+      openPnl += pos.pnl;
+      investedMargin += (pos.avgPrice * pos.qty);
+    });
 
-      try {
-        const paperRef = doc(db, "paperTrading", user.uid);
-        const paperSnap = await getDoc(paperRef);
+    const netWorth = balance + openPnl + investedMargin;
+    return { openPnl, investedMargin, netWorth };
+  }, [balance, positions]);
 
-        if (paperSnap.exists()) {
-          const data = paperSnap.data();
-          setBalance(data.balance ?? 100000);
-          setHoldings(data.holdings ?? []);
-        } else {
-          await setDoc(paperRef, {
-            uid: user.uid,
-            email: user.email,
-            balance: 100000,
-            holdings: [],
-            createdAt: new Date().toISOString(),
-          });
-        }
-      } catch (error) {
-        console.error("Paper Trading Load Error:", error);
-        alert("Failed to load paper trading data");
-      }
-      setLoading(false);
+  // ==========================================
+  // TRADE EXECUTION LOGIC (SIMULATED)
+  // ==========================================
+  const handleExecuteTrade = (e) => {
+    e.preventDefault();
+    if (!orderForm.symbol || !orderForm.qty || orderForm.qty <= 0) {
+      showToast("Please enter valid symbol and quantity");
+      return;
+    }
+
+    const tradeQty = parseInt(orderForm.qty);
+    // Simulate current market price if MARKET order (random value between 100 and 3000)
+    const execPrice = orderForm.orderType === 'LIMIT' 
+      ? parseFloat(orderForm.price) 
+      : Math.floor(Math.random() * (3000 - 100 + 1) + 100); 
+    
+    const requiredMargin = tradeQty * execPrice;
+
+    if (orderForm.action === 'BUY' && requiredMargin > balance) {
+      showToast("Insufficient Virtual Margin!");
+      return;
+    }
+
+    // Update Balance
+    if (orderForm.action === 'BUY') {
+      setBalance(prev => prev - requiredMargin);
+    } else {
+      // For short selling, we just add margin requirement logic, keeping it simple here
+      setBalance(prev => prev - (requiredMargin * 0.2)); // 20% margin blocked for short
+    }
+
+    // Add to Positions
+    const newPosition = {
+      id: Date.now(),
+      symbol: orderForm.symbol.toUpperCase(),
+      type: orderForm.action,
+      qty: tradeQty,
+      avgPrice: execPrice,
+      currentPrice: execPrice, // initial price is exec price
+      pnl: 0
     };
+    setPositions([newPosition, ...positions]);
 
-    loadPaperTrading();
-  }, []);
+    // Add to Orders History
+    const newOrder = {
+      id: Date.now() + 1,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      symbol: orderForm.symbol.toUpperCase(),
+      type: orderForm.action,
+      qty: tradeQty,
+      price: execPrice,
+      status: 'Completed'
+    };
+    setOrders([newOrder, ...orders]);
 
-  /* =========================
-     SAVE FIREBASE DATA
-  ========================= */
-  const savePaperTrading = async (newBalance, newHoldings) => {
-    const user = auth.currentUser;
-    if (!user) {
-      alert("Please login first");
-      return false;
-    }
-
-    try {
-      setSaving(true);
-      const paperRef = doc(db, "paperTrading", user.uid);
-      await setDoc(
-        paperRef,
-        {
-          uid: user.uid,
-          email: user.email,
-          balance: newBalance,
-          holdings: newHoldings,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
-      return true;
-    } catch (error) {
-      console.error("Firebase Save Error:", error);
-      alert("Failed to save trading data");
-      return false;
-    } finally {
-      setSaving(false);
-    }
+    showToast(`${orderForm.action} Order executed for ${tradeQty} ${orderForm.symbol.toUpperCase()} at ₹${execPrice}`);
+    
+    // Reset Form
+    setOrderForm({ symbol: '', action: 'BUY', orderType: 'MARKET', qty: '', price: '' });
   };
 
-  /* =========================
-     GET LIVE PRICE
-  ========================= */
-  const fetchLivePrice = async (targetSymbol = symbol) => {
-    const cleanSymbol = targetSymbol.trim();
-    if (!cleanSymbol) {
-      alert("Please enter or select a stock symbol");
-      return;
-    }
-
-    try {
-      setFetchingPrice(true);
-      const data = await getStockQuote(cleanSymbol.toUpperCase());
-
-      if (!data.current || data.current <= 0) {
-        alert("Unable to find live price for this symbol");
-        return;
-      }
-
-      setLivePrice(data.current);
-      setSymbol(cleanSymbol.toUpperCase());
-    } catch (error) {
-      console.error(error);
-      alert("Failed to fetch live stock price");
-    } finally {
-      setFetchingPrice(false);
-    }
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
-  /* =========================
-     BUY STOCK
-  ========================= */
-  const handleBuy = async () => {
-    if (!symbol || !quantity) {
-      alert("Please enter stock symbol and quantity");
-      return;
-    }
-
-    if (!livePrice) {
-      alert("Please fetch live price first");
-      return;
-    }
-
-    const buyQuantity = Number(quantity);
-    if (buyQuantity <= 0) {
-      alert("Quantity must be greater than 0");
-      return;
-    }
-
-    const totalCost = buyQuantity * livePrice;
-    if (totalCost > balance) {
-      alert("Insufficient Virtual Balance in your account");
-      return;
-    }
-
-    const stockSymbol = symbol.toUpperCase();
-    const existingHolding = holdings.find((item) => item.symbol === stockSymbol);
-    let updatedHoldings;
-
-    if (existingHolding) {
-      const oldInvestment = existingHolding.quantity * existingHolding.averageBuyPrice;
-      const newQuantity = existingHolding.quantity + buyQuantity;
-      const newAveragePrice = (oldInvestment + totalCost) / newQuantity;
-
-      updatedHoldings = holdings.map((item) =>
-        item.symbol === stockSymbol
-          ? {
-              ...item,
-              quantity: newQuantity,
-              averageBuyPrice: newAveragePrice,
-              currentPrice: livePrice,
-            }
-          : item
-      );
-    } else {
-      updatedHoldings = [
-        ...holdings,
-        {
-          symbol: stockSymbol,
-          quantity: buyQuantity,
-          averageBuyPrice: livePrice,
-          currentPrice: livePrice,
-        },
-      ];
-    }
-
-    const newBalance = balance - totalCost;
-    setBalance(newBalance);
-    setHoldings(updatedHoldings);
-
-    const saved = await savePaperTrading(newBalance, updatedHoldings);
-    if (saved) {
-      alert(`✅ Successfully executed BUY order for ${buyQuantity} shares of ${stockSymbol}`);
-      setSymbol("");
-      setQuantity("");
-      setLivePrice(null);
-    }
-  };
-
-  /* =========================
-     SELL STOCK
-  ========================= */
-  const handleSell = async () => {
-    if (!symbol || !quantity) {
-      alert("Please enter stock symbol and quantity");
-      return;
-    }
-
-    if (!livePrice) {
-      alert("Please fetch live price first");
-      return;
-    }
-
-    const stockSymbol = symbol.toUpperCase();
-    const sellQuantity = Number(quantity);
-    const holdingIndex = holdings.findIndex((item) => item.symbol === stockSymbol);
-
-    if (holdingIndex === -1) {
-      alert(`You don't own any shares of ${stockSymbol}`);
-      return;
-    }
-
-    const holding = holdings[holdingIndex];
-    if (sellQuantity <= 0) {
-      alert("Quantity must be greater than 0");
-      return;
-    }
-
-    if (sellQuantity > holding.quantity) {
-      alert(`You only own ${holding.quantity} shares of ${stockSymbol}`);
-      return;
-    }
-
-    const sellValue = sellQuantity * livePrice;
-    const profitLoss = (livePrice - holding.averageBuyPrice) * sellQuantity;
-    let updatedHoldings;
-
-    if (sellQuantity === holding.quantity) {
-      updatedHoldings = holdings.filter((_, index) => index !== holdingIndex);
-    } else {
-      updatedHoldings = holdings.map((item, index) =>
-        index === holdingIndex
-          ? {
-              ...item,
-              quantity: item.quantity - sellQuantity,
-              currentPrice: livePrice,
-            }
-          : item
-      );
-    }
-
-    const newBalance = balance + sellValue;
-    setBalance(newBalance);
-    setHoldings(updatedHoldings);
-
-    const saved = await savePaperTrading(newBalance, updatedHoldings);
-    if (saved) {
-      alert(`✅ Successfully executed SELL order for ${sellQuantity} shares of ${stockSymbol}\nRealized P&L: ₹${profitLoss.toFixed(2)}`);
-      setSymbol("");
-      setQuantity("");
-      setLivePrice(null);
-    }
-  };
-
-  /* =========================
-     CALCULATE PORTFOLIO
-  ========================= */
-  const portfolioValue = holdings.reduce(
-    (total, item) => total + item.quantity * (item.currentPrice || item.averageBuyPrice),
-    0
-  );
-
-  const totalInvestment = holdings.reduce(
-    (total, item) => total + item.quantity * item.averageBuyPrice,
-    0
-  );
-
-  const totalProfitLoss = portfolioValue - totalInvestment;
-
-  /* =========================
-     REFRESH HOLDING PRICES
-  ========================= */
-  const refreshPrices = async () => {
-    if (holdings.length === 0) {
-      alert("No holdings to refresh");
-      return;
-    }
-
-    try {
-      setFetchingPrice(true);
-      const updatedHoldings = await Promise.all(
-        holdings.map(async (item) => {
-          try {
-            const data = await getStockQuote(item.symbol);
-            return {
-              ...item,
-              currentPrice: data.current,
-            };
-          } catch {
-            return item;
-          }
-        })
-      );
-
-      setHoldings(updatedHoldings);
-      await savePaperTrading(balance, updatedHoldings);
-      alert("✅ Live market prices updated successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update prices");
-    } finally {
-      setFetchingPrice(false);
-    }
-  };
-
-  /* =========================
-     LOADING STATE
-  ========================= */
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent mx-auto" />
-          <p className="text-yellow-400 text-xs font-bold tracking-wider uppercase animate-pulse">
-            Loading Paper Trading Terminal...
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-zinc-900 dark:text-zinc-50 pt-8 pb-20 px-4 sm:px-6 lg:px-8">
+      
+      {/* HEADER */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
+            <Activity className="text-red-600" size={32} />
+            Paper Trading
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-sm sm:text-base">
+            Practice strategies with ₹10,00,000 virtual money in real-time market conditions.
           </p>
         </div>
+
+        {/* Global Stats Widget */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-5 py-3 rounded-2xl flex items-center gap-4 shadow-sm">
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl">
+              <Wallet size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Available Margin</p>
+              <p className="text-xl font-black">₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-5 py-3 rounded-2xl flex items-center gap-4 shadow-sm">
+            <div className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-xl">
+              <Award size={24} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Net Worth</p>
+              <p className="text-xl font-black text-green-600 dark:text-green-500">₹{portfolioStats.netWorth.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        </div>
       </div>
-    );
-  }
 
-  /* =========================
-     RENDER UI
-  ========================= */
-  return (
-    <div className="min-h-screen bg-black text-white flex overflow-x-hidden selection:bg-yellow-400 selection:text-black">
-      <MemberSidebar />
-
-      <div className="flex-1 min-w-0 w-full">
-        <MemberTopbar />
-
-        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
-
-          {/* HEADER BANNER */}
-          <div className="bg-gradient-to-r from-yellow-400/10 via-zinc-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
-            <div className="space-y-2 relative z-10">
-              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/20 px-4 py-1 text-yellow-400 text-xs font-black uppercase tracking-wider">
-                <FaBolt className="text-yellow-400" /> Risk-Free Simulation Engine
+      <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+        {/* LEFT COLUMN: POSITIONS & ORDERS */}
+        <div className="xl:col-span-2 space-y-6">
+          
+          {/* Active Positions */}
+          <div className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-zinc-950/50">
+              <h2 className="font-bold text-lg flex items-center gap-2">
+                <Crosshair className="text-red-600" size={20} /> Active Positions
+              </h2>
+              <div className="text-sm font-bold flex items-center gap-2">
+                <span className="text-zinc-500">Day's P&L:</span>
+                <span className={portfolioStats.openPnl >= 0 ? 'text-green-500' : 'text-red-500'}>
+                  {portfolioStats.openPnl >= 0 ? '+' : ''}₹{portfolioStats.openPnl.toLocaleString('en-IN')}
+                </span>
               </div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight">
-                Institutional Paper Trading 📈
-              </h1>
-              <p className="text-gray-300 text-xs sm:text-sm">
-                Test your high-probability strategies with ₹1,00,000 virtual capital in real-time market conditions.
-              </p>
+            </div>
+            
+            <div className="overflow-x-auto w-full custom-scrollbar min-h-[200px]">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase">Symbol</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-center">Type</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-right">Qty</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-right">Avg Price</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-right">LTP</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-right">P&L</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                  <AnimatePresence>
+                    {positions.map((pos) => (
+                      <motion.tr 
+                        key={pos.id}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                      >
+                        <td className="py-4 px-6 font-bold">{pos.symbol}</td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${pos.type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            {pos.type}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right font-medium">{pos.qty}</td>
+                        <td className="py-4 px-6 text-right">₹{pos.avgPrice.toFixed(2)}</td>
+                        <td className="py-4 px-6 text-right font-medium">₹{pos.currentPrice.toFixed(2)}</td>
+                        <td className={`py-4 px-6 text-right font-bold ${pos.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <button className="px-3 py-1 bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors">
+                            Square Off
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                    {positions.length === 0 && (
+                      <tr>
+                        <td colSpan="7" className="py-12 text-center text-zinc-500">
+                          <p className="font-medium text-zinc-900 dark:text-zinc-100">No active positions</p>
+                          <p className="text-sm">Execute a trade to see it here.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </AnimatePresence>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* STATS OVERVIEW CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Available Cash Balance</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-yellow-400 mt-2">
-                ₹{balance.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+          {/* Order Book */}
+          <div className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/50">
+              <h2 className="font-bold text-lg flex items-center gap-2">
+                <History className="text-red-600" size={20} /> Today's Orders
               </h2>
             </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Portfolio Value</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
-                ₹{portfolioValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Invested Capital</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
-                ₹{totalInvestment.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Unrealized P&L</p>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-2 ${totalProfitLoss >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {totalProfitLoss >= 0 ? "+" : ""}₹{totalProfitLoss.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
+            <div className="overflow-x-auto custom-scrollbar min-h-[150px]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase">Time</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase">Symbol</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-center">Side</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-right">Qty</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-right">Price</th>
+                    <th className="py-3 px-6 text-xs font-bold text-zinc-500 uppercase text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                  <AnimatePresence>
+                    {orders.map((order) => (
+                      <motion.tr 
+                        key={order.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                      >
+                        <td className="py-3 px-6 text-sm text-zinc-500">{order.time}</td>
+                        <td className="py-3 px-6 text-sm font-bold">{order.symbol}</td>
+                        <td className="py-3 px-6 text-center">
+                           <span className={order.type === 'BUY' ? 'text-green-500 font-bold text-sm' : 'text-red-500 font-bold text-sm'}>
+                             {order.type}
+                           </span>
+                        </td>
+                        <td className="py-3 px-6 text-right text-sm font-medium">{order.qty}</td>
+                        <td className="py-3 px-6 text-right text-sm">₹{order.price.toFixed(2)}</td>
+                        <td className="py-3 px-6 text-center">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-md">
+                            <CheckCircle2 size={12} /> {order.status}
+                          </span>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* EXECUTE TRADE PANEL */}
-          <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 md:p-8 shadow-2xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+        </div>
+
+        {/* RIGHT COLUMN: ORDER ENTRY & LEADERBOARD */}
+        <div className="space-y-6">
+          
+          {/* Order Entry Form */}
+          <div className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-6 relative overflow-hidden">
+            
+            {/* Top red accent line */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+
+            <h2 className="font-bold text-xl flex items-center gap-2 mb-6">
+              <ShoppingCart className="text-red-600" size={20} /> Place Order
+            </h2>
+
+            <form onSubmit={handleExecuteTrade} className="space-y-5">
+              
+              {/* Buy/Sell Toggles */}
+              <div className="grid grid-cols-2 gap-2 bg-zinc-100 dark:bg-zinc-950 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setOrderForm({...orderForm, action: 'BUY'})}
+                  className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                    orderForm.action === 'BUY' 
+                      ? 'bg-green-500 text-white shadow-md' 
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  BUY
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderForm({...orderForm, action: 'SELL'})}
+                  className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                    orderForm.action === 'SELL' 
+                      ? 'bg-red-500 text-white shadow-md' 
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  SELL
+                </button>
+              </div>
+
+              {/* Symbol Input */}
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">Execute Instant Order</h2>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">Select a quick stock or enter any valid ticker symbol.</p>
-              </div>
-
-              {/* Quick Preset Pills */}
-              <div className="flex flex-wrap gap-1.5">
-                {quickStocks.map((ticker) => (
-                  <button
-                    key={ticker}
-                    onClick={() => {
-                      setSymbol(ticker);
-                      fetchLivePrice(ticker);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs font-bold text-yellow-400 hover:bg-yellow-400 hover:text-black transition cursor-pointer"
-                  >
-                    {ticker}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* SYMBOL INPUT */}
-              <div className="space-y-2">
-                <label className="text-xs text-zinc-400 font-semibold">Stock Symbol / Ticker</label>
-                <input
-                  value={symbol}
-                  onChange={(e) => {
-                    setSymbol(e.target.value.toUpperCase());
-                    setLivePrice(null);
-                  }}
-                  placeholder="e.g. AAPL, TSLA"
-                  className="w-full bg-black border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-yellow-400 transition"
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Symbol</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. RELIANCE"
+                  value={orderForm.symbol}
+                  onChange={(e) => setOrderForm({...orderForm, symbol: e.target.value.toUpperCase()})}
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all uppercase"
                 />
               </div>
 
-              {/* QUANTITY INPUT */}
-              <div className="space-y-2">
-                <label className="text-xs text-zinc-400 font-semibold">Quantity / Shares</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="e.g. 10"
-                  className="w-full bg-black border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-yellow-400 transition"
-                />
-              </div>
-
-              {/* LIVE PRICE FETCH */}
-              <div className="space-y-2">
-                <label className="text-xs text-zinc-400 font-semibold">Live Market Quote</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-black border border-white/10 rounded-2xl px-4 py-3.5 text-green-400 font-black text-sm flex items-center">
-                    {livePrice ? `₹${livePrice.toFixed(2)}` : "Not Fetched"}
+              {/* Order Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Order Type</label>
+                  <div className="relative">
+                    <select 
+                      value={orderForm.orderType}
+                      onChange={(e) => setOrderForm({...orderForm, orderType: e.target.value})}
+                      className="w-full appearance-none bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all cursor-pointer"
+                    >
+                      <option value="MARKET">Market</option>
+                      <option value="LIMIT">Limit</option>
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                   </div>
-                  <button
-                    onClick={() => fetchLivePrice(symbol)}
-                    disabled={fetchingPrice}
-                    className="px-5 rounded-2xl bg-yellow-400 text-black hover:bg-yellow-300 disabled:opacity-50 font-bold transition cursor-pointer flex items-center justify-center shrink-0"
-                    title="Fetch Quote"
-                  >
-                    <FaSync className={fetchingPrice ? "animate-spin" : ""} />
-                  </button>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Quantity</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    placeholder="0"
+                    value={orderForm.qty}
+                    onChange={(e) => setOrderForm({...orderForm, qty: e.target.value})}
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all"
+                  />
                 </div>
               </div>
-            </div>
 
-            {/* ACTION BUTTONS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <button
-                onClick={handleBuy}
-                disabled={saving || fetchingPrice}
-                className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-black py-4 rounded-2xl transition cursor-pointer shadow-lg active:scale-95"
-              >
-                <FaArrowUp /> BUY LONG POSITION
-              </button>
-
-              <button
-                onClick={handleSell}
-                disabled={saving || fetchingPrice}
-                className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-400 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition cursor-pointer shadow-lg active:scale-95"
-              >
-                <FaArrowDown /> SELL / BOOK PROFIT
-              </button>
-            </div>
-          </div>
-
-          {/* MY HOLDINGS SECTION */}
-          <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-6 md:p-8 shadow-2xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">Active Holdings</h2>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">Manage your open positions and real-time P&L.</p>
-              </div>
-
-              <button
-                onClick={refreshPrices}
-                disabled={fetchingPrice || holdings.length === 0}
-                className="flex items-center justify-center gap-2 bg-yellow-400/10 border border-yellow-400/30 text-yellow-400 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-yellow-400 hover:text-black transition disabled:opacity-50 cursor-pointer"
-              >
-                <FaSync className={fetchingPrice ? "animate-spin" : ""} /> Refresh All Quotes
-              </button>
-            </div>
-
-            {holdings.length === 0 ? (
-              <div className="text-center py-16 space-y-3">
-                <FaChartLine className="mx-auto text-5xl text-zinc-700" />
-                <p className="text-zinc-400 font-semibold text-sm">No open positions in your portfolio yet.</p>
-                <p className="text-zinc-600 text-xs">Execute a buy order above to start practicing your strategy.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {holdings.map((holding) => {
-                  const currentPrice = holding.currentPrice || holding.averageBuyPrice;
-                  const investment = holding.quantity * holding.averageBuyPrice;
-                  const currentValue = holding.quantity * currentPrice;
-                  const pnl = currentValue - investment;
-                  const pnlPercentage = investment > 0 ? (pnl / investment) * 100 : 0;
-
-                  return (
-                    <div
-                      key={holding.symbol}
-                      className="bg-black/60 border border-white/5 hover:border-white/15 transition rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 font-black text-lg">
-                          {holding.symbol.slice(0, 3)}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-black text-white">{holding.symbol}</h3>
-                          <p className="text-xs text-zinc-400 font-semibold">Qty: {holding.quantity} shares</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left lg:text-right">
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">Avg Buy Price</p>
-                          <p className="text-sm font-bold text-white mt-0.5">₹{holding.averageBuyPrice.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">Current Price</p>
-                          <p className="text-sm font-bold text-yellow-400 mt-0.5">₹{currentPrice.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">Total Value</p>
-                          <p className="text-sm font-bold text-white mt-0.5">₹{currentValue.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-zinc-400 font-semibold">Unrealized P&L</p>
-                          <p className={`text-sm font-black mt-0.5 ${pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
-                            {pnl >= 0 ? "+" : ""}₹{pnl.toFixed(2)} ({pnlPercentage.toFixed(2)}%)
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setSymbol(holding.symbol);
-                          setQuantity(holding.quantity);
-                          setLivePrice(currentPrice);
-                          window.scrollTo({ top: 400, behavior: "smooth" });
-                        }}
-                        className="bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-black text-red-400 font-bold px-5 py-2.5 rounded-xl text-xs transition cursor-pointer shrink-0"
-                      >
-                        Quick Sell
-                      </button>
+              {/* Price Input (Disabled if Market) */}
+              <AnimatePresence>
+                {orderForm.orderType === 'LIMIT' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 mt-1">Limit Price</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-zinc-500">₹</span>
+                      <input 
+                        type="number" 
+                        required
+                        min="0"
+                        step="0.05"
+                        placeholder="0.00"
+                        value={orderForm.price}
+                        onChange={(e) => setOrderForm({...orderForm, price: e.target.value})}
+                        className="w-full bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all"
+                      />
                     </div>
-                  );
-                })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button 
+                  type="submit"
+                  className={`w-full py-3.5 rounded-xl font-bold text-white transition-all shadow-lg hover:shadow-xl active:scale-95 ${
+                    orderForm.action === 'BUY' 
+                      ? 'bg-green-600 hover:bg-green-700 shadow-green-600/20' 
+                      : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
+                  }`}
+                >
+                  {orderForm.action} {orderForm.symbol || 'STOCK'}
+                </button>
               </div>
-            )}
+
+            </form>
           </div>
 
-        </main>
+          {/* Quick Rank / Leaderboard Widget */}
+          <div className="bg-gradient-to-br from-zinc-900 to-black dark:from-zinc-900 dark:to-zinc-950 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-600/20 rounded-full blur-2xl"></div>
+            
+            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-4">Your Ranking</h3>
+            <div className="flex items-end gap-3 mb-6">
+              <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500">
+                #42
+              </span>
+              <span className="text-sm font-medium text-zinc-400 mb-1">out of 10k traders</span>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">Weekly Return</span>
+                <span className="font-bold text-green-400">+12.4%</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">Win Rate</span>
+                <span className="font-bold text-white">68%</span>
+              </div>
+            </div>
+
+            <button className="w-full mt-6 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-bold transition-colors">
+              View Leaderboard
+            </button>
+          </div>
+
+        </div>
       </div>
+
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-zinc-900 dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl shadow-2xl"
+          >
+            <div className="bg-green-500/20 text-green-500 p-1 rounded-full">
+              <CheckCircle2 size={16} strokeWidth={3} />
+            </div>
+            <p className="text-sm font-bold">{toastMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

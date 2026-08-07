@@ -1,345 +1,363 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
-import {
-  FaNewspaper,
-  FaChartLine,
-  FaBitcoin,
-  FaDollarSign,
-  FaSyncAlt,
-  FaExternalLinkAlt,
-  FaExclamationTriangle,
-  FaSearch,
-  FaFire,
-} from "react-icons/fa";
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Newspaper, Search, Bookmark, Share2, Sparkles, 
+  TrendingUp, TrendingDown, Clock, Filter, ExternalLink, BookmarkCheck, ChevronRight
+} from 'lucide-react';
 
-import MemberSidebar from "../components/member/MemberSidebar";
-import MemberTopbar from "../components/member/MemberTopbar";
-import { getMarketNews } from "../services/finnhub";
+// ==========================================
+// MOCK DATA: NEWS & AI SUMMARIES
+// ==========================================
+const CATEGORIES = ['Top Stories', 'Markets', 'Economy', 'IPO', 'Global', 'Crypto'];
 
-const categories = [
-  { name: "All Feeds", apiCategory: null, icon: <FaNewspaper /> },
-  { name: "Stocks", apiCategory: "general", icon: <FaChartLine /> },
-  { name: "Crypto", apiCategory: "crypto", icon: <FaBitcoin /> },
-  { name: "Forex", apiCategory: "forex", icon: <FaDollarSign /> },
+const MOCK_NEWS = [
+  {
+    id: 1,
+    title: "RBI keeps repo rate unchanged at 6.5% for the 8th consecutive time",
+    source: "Scorcher Financial",
+    time: "15 mins ago",
+    category: "Economy",
+    image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800",
+    impact: "Neutral",
+    aiSummary: "The Reserve Bank of India (RBI) MPC decided to hold the repo rate at 6.50%, aligning with market expectations. Inflation remains the primary focus. Banking and auto sectors might see range-bound movement today as no immediate rate cut stimulus was provided.",
+    tags: ['RBI', 'Interest Rates', 'Banking']
+  },
+  {
+    id: 2,
+    title: "Reliance Retail Q4 Profits surge 22% YoY, announces massive expansion",
+    source: "Market Watch",
+    time: "1 hour ago",
+    category: "Markets",
+    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800",
+    impact: "Bullish",
+    aiSummary: "Reliance Retail reported a net profit jump of 22%, beating street estimates. The management outlined an aggressive store expansion strategy. Technical indicators for RELIANCE show a strong breakout potential above ₹2950 levels.",
+    tags: ['RELIANCE', 'Earnings', 'Retail']
+  },
+  {
+    id: 3,
+    title: "US Fed hints at possible rate hike if inflation persists",
+    source: "Global Times",
+    time: "2 hours ago",
+    category: "Global",
+    image: "https://images.unsplash.com/photo-1621252179027-9c988c5efbc5?auto=format&fit=crop&q=80&w=800",
+    impact: "Bearish",
+    aiSummary: "Hawkish comments from Fed officials have spooked global markets. US indices closed in the red, and the ripple effect is expected to gap-down Indian IT and banking stocks today. Safe-haven assets like Gold might see a rally.",
+    tags: ['US Fed', 'Inflation', 'Global']
+  },
+  {
+    id: 4,
+    title: "Swiggy IPO: Grey Market Premium (GMP) hits 40% ahead of listing",
+    source: "Scorcher Exclusives",
+    time: "3 hours ago",
+    category: "IPO",
+    image: null,
+    impact: "Bullish",
+    aiSummary: "Strong institutional subscription has driven Swiggy's GMP up by 40%. Retail investors are highly active. Expect a strong listing gain if market sentiment remains positive on the listing day.",
+    tags: ['IPO', 'Swiggy', 'Startups']
+  },
+  {
+    id: 5,
+    title: "Bitcoin crosses $70,000 mark as institutional buying resumes",
+    source: "Crypto Wire",
+    time: "4 hours ago",
+    category: "Crypto",
+    image: null,
+    impact: "Bullish",
+    aiSummary: "Spot Bitcoin ETFs have seen massive inflows over the last 48 hours. BTC has breached the $70k psychological resistance. Next immediate technical target sits at $72,500.",
+    tags: ['Bitcoin', 'Crypto', 'ETF']
+  }
 ];
 
-function formatTime(timestamp) {
-  if (!timestamp) return "Just now";
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getCategoryLabel(category) {
-  if (category === "general") return "Equities";
-  if (category === "crypto") return "Crypto";
-  if (category === "forex") return "Forex";
-  return "Global";
-}
-
-function NewsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {[1, 2, 3, 4].map((item) => (
-        <div
-          key={item}
-          className="rounded-3xl border border-yellow-500/10 bg-zinc-950 p-6 animate-pulse space-y-4"
-        >
-          <div className="flex justify-between">
-            <div className="h-6 w-20 rounded-full bg-zinc-900" />
-            <div className="h-5 w-24 rounded bg-zinc-900" />
-          </div>
-          <div className="h-7 w-4/5 rounded bg-zinc-900" />
-          <div className="h-4 w-full rounded bg-zinc-900" />
-          <div className="h-4 w-3/4 rounded bg-zinc-900" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function MarketNews() {
-  const [openSidebar, setOpenSidebar] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("All Feeds");
-  const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState('Top Stories');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [bookmarks, setBookmarks] = useState([2]); // ID 2 is bookmarked by default
+  const [expandedNewsId, setExpandedNewsId] = useState(1); // First news expanded for AI summary
 
-  const fetchNews = useCallback(
-    async (isRefresh = false) => {
-      try {
-        setError("");
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
-
-        const selectedCategory = categories.find(
-          (category) => category.name === activeCategory
-        );
-
-        let finalNews = [];
-
-        if (activeCategory === "All Feeds") {
-          const results = await Promise.allSettled([
-            getMarketNews("general"),
-            getMarketNews("crypto"),
-            getMarketNews("forex"),
-          ]);
-
-          results.forEach((result, index) => {
-            if (result.status === "fulfilled") {
-              const categoryNames = ["general", "crypto", "forex"];
-              const categoryName = categoryNames[index];
-              const categoryNews = result.value.map((item) => ({
-                ...item,
-                category: categoryName,
-              }));
-              finalNews.push(...categoryNews);
-            }
-          });
-        } else {
-          const data = await getMarketNews(selectedCategory.apiCategory);
-          finalNews = data.map((item) => ({
-            ...item,
-            category: selectedCategory.apiCategory,
-          }));
-        }
-
-        // Clean up invalid entries
-        finalNews = finalNews.filter((item) => item.headline && item.url);
-
-        // Remove duplicate URLs
-        const uniqueNews = Array.from(
-          new Map(finalNews.map((item) => [item.url, item])).values()
-        );
-
-        // Sort latest first
-        uniqueNews.sort((a, b) => (b.datetime || 0) - (a.datetime || 0));
-
-        setNews(uniqueNews.slice(0, 40));
-        setLastUpdated(new Date());
-      } catch (err) {
-        console.error("Market News Error:", err);
-        setError("Unable to sync financial intelligence feeds right now.");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [activeCategory]
-  );
-
-  useEffect(() => {
-    fetchNews();
-  }, [fetchNews]);
-
-  // Filter news based on search query
+  // ==========================================
+  // FILTERING LOGIC
+  // ==========================================
   const filteredNews = useMemo(() => {
-    if (!searchQuery.trim()) return news;
-    return news.filter(
-      (item) =>
-        item.headline?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.source?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [news, searchQuery]);
+    return MOCK_NEWS.filter(news => {
+      const matchesSearch = news.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            news.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = activeCategory === 'Top Stories' || news.category === activeCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, activeCategory]);
+
+  const toggleBookmark = (id, e) => {
+    e.stopPropagation();
+    if (bookmarks.includes(id)) {
+      setBookmarks(bookmarks.filter(b => b !== id));
+    } else {
+      setBookmarks([...bookmarks, id]);
+    }
+  };
+
+  const getImpactColor = (impact) => {
+    if (impact === 'Bullish') return 'text-green-600 bg-green-100 dark:bg-green-900/30';
+    if (impact === 'Bearish') return 'text-red-600 bg-red-100 dark:bg-red-900/30';
+    return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30';
+  };
+
+  const getImpactIcon = (impact) => {
+    if (impact === 'Bullish') return <TrendingUp size={14} />;
+    if (impact === 'Bearish') return <TrendingDown size={14} />;
+    return <Clock size={14} />;
+  };
 
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-x-hidden selection:bg-yellow-400 selection:text-black">
-      <MemberSidebar open={openSidebar} setOpen={setOpenSidebar} />
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-zinc-900 dark:text-zinc-50 pt-8 pb-24 px-4 sm:px-6 lg:px-8">
+      
+      {/* HEADER SECTION */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
+            <Newspaper className="text-red-600" size={32} />
+            Market News & AI Insights
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-sm sm:text-base">
+            Live updates curated and summarized by Scorcher AI for faster decision making.
+          </p>
+        </div>
 
-      <div className="flex-1 min-w-0 w-full">
-        <MemberTopbar toggleSidebar={() => setOpenSidebar(true)} />
+        {/* Search Bar */}
+        <div className="relative w-full lg:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Search news, stocks, or tags..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-3 font-medium focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all shadow-sm"
+          />
+        </div>
+      </div>
 
-        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
-
-          {/* TOP BANNER */}
-          <div className="bg-gradient-to-r from-yellow-400/10 via-zinc-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/30 shadow-2xl relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/20 px-4 py-1 text-yellow-400 text-xs font-black uppercase tracking-wider">
-                  <FaFire className="text-yellow-400" /> Institutional Financial Intelligence
-                </div>
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight">
-                  Global Market News Terminal 📰
-                </h1>
-                <p className="text-gray-300 text-xs sm:text-sm max-w-2xl">
-                  Real-time algorithmic feeds tracking macroeconomics, equities, cryptocurrency movements, and forex liquidity.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => fetchNews(true)}
-                  disabled={refreshing || loading}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-yellow-400 text-black px-5 py-3 font-black text-xs hover:bg-yellow-300 transition cursor-pointer shadow-lg disabled:opacity-50 shrink-0"
-                >
-                  <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
-                  {refreshing ? "Syncing..." : "Sync Live Feeds"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* SEARCH & CATEGORY BAR */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-zinc-950 p-4 rounded-3xl border border-yellow-500/20 shadow-xl">
-            {/* Categories */}
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              {categories.map((category) => (
-                <button
-                  key={category.name}
-                  onClick={() => setActiveCategory(category.name)}
-                  className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 font-bold text-xs transition cursor-pointer ${
-                    activeCategory === category.name
-                      ? "bg-yellow-400 text-black shadow-lg shadow-yellow-400/20"
-                      : "bg-zinc-900 text-zinc-400 hover:text-white border border-white/5"
-                  }`}
-                >
-                  {category.icon}
-                  {category.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Search Input */}
-            <div className="relative w-full md:w-80">
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search headlines or source..."
-                className="w-full bg-black border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-xs text-white outline-none focus:border-yellow-400 transition"
-              />
-            </div>
-          </div>
-
-          {/* STATUS BAR */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950 p-4 flex items-center justify-between">
-              <span className="text-zinc-400 text-xs font-semibold">Feed Status</span>
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="font-bold text-green-400 text-xs uppercase">Connected</span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950 p-4 flex items-center justify-between">
-              <span className="text-zinc-400 text-xs font-semibold">Active Stream</span>
-              <span className="font-bold text-white text-xs">{activeCategory}</span>
-            </div>
-
-            <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950 p-4 flex items-center justify-between">
-              <span className="text-zinc-400 text-xs font-semibold">Last Synchronized</span>
-              <span className="font-bold text-yellow-400 text-xs">
-                {lastUpdated
-                  ? lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-                  : "Syncing..."}
-              </span>
-            </div>
-          </div>
-
-          {/* ERROR STATE */}
-          {error && !loading && (
-            <div className="rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-center space-y-4">
-              <FaExclamationTriangle className="mx-auto text-4xl text-red-400" />
-              <h3 className="text-xl font-bold text-red-400">Connection Interrupted</h3>
-              <p className="text-gray-400 text-xs">{error}</p>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* LEFT COLUMN: MAIN FEED */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* CATEGORY TABS */}
+          <div className="flex overflow-x-auto custom-scrollbar pb-2 -mb-2 gap-2">
+            {CATEGORIES.map(category => (
               <button
-                onClick={() => fetchNews(true)}
-                className="rounded-xl bg-yellow-400 px-5 py-2.5 font-bold text-black text-xs hover:bg-yellow-300 cursor-pointer shadow-lg"
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl font-bold text-sm transition-all duration-200 ${
+                  activeCategory === category 
+                    ? 'bg-red-600 text-white shadow-md shadow-red-600/20' 
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                }`}
               >
-                Reconnect Stream
+                {category}
               </button>
-            </div>
-          )}
+            ))}
+          </div>
 
-          {/* LOADING STATE */}
-          {loading && <NewsSkeleton />}
+          {/* NEWS LIST */}
+          <div className="space-y-4 pt-2">
+            <AnimatePresence mode="popLayout">
+              {filteredNews.map((news) => {
+                const isExpanded = expandedNewsId === news.id;
+                const isBookmarked = bookmarks.includes(news.id);
 
-          {/* NEWS GRID */}
-          {!loading && !error && filteredNews.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredNews.map((item, index) => (
-                <article
-                  key={`${item.url}-${index}`}
-                  className="group rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 transition-all duration-300 hover:border-yellow-400/60 hover:bg-zinc-900 shadow-xl flex flex-col justify-between space-y-6"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-yellow-400">
-                        {getCategoryLabel(item.category)}
-                      </span>
-                      <span className="text-xs text-zinc-500 font-semibold">
-                        {formatTime(item.datetime)}
-                      </span>
-                    </div>
-
-                    {item.image && (
-                      <div className="overflow-hidden rounded-2xl border border-white/5">
-                        <img
-                          src={item.image}
-                          alt={item.headline}
-                          className="h-48 w-full object-cover transition duration-500 group-hover:scale-105"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <h3 className="text-lg md:text-xl font-black leading-tight transition group-hover:text-yellow-400">
-                      {item.headline}
-                    </h3>
-
-                    <p className="text-xs md:text-sm leading-relaxed text-zinc-400 line-clamp-3">
-                      {item.summary || "Read complete institutional coverage and analytical breakdown from the original source."}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-bold text-zinc-300">{item.source || "Market Wire"}</p>
-                      <p className="text-[10px] text-zinc-500">Stock Scorcher Intelligence</p>
-                    </div>
-
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 rounded-xl border border-yellow-400/30 bg-yellow-400/10 px-4 py-2 text-xs font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black cursor-pointer shadow-lg shrink-0"
+                return (
+                  <motion.div 
+                    key={news.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                  >
+                    <div 
+                      className="p-5 sm:p-6 cursor-pointer flex flex-col sm:flex-row gap-5"
+                      onClick={() => setExpandedNewsId(isExpanded ? null : news.id)}
                     >
-                      Read Article <FaExternalLinkAlt size={10} />
-                    </a>
-                  </div>
-                </article>
+                      {/* Optional Image */}
+                      {news.image && (
+                        <div className="w-full sm:w-48 h-48 sm:h-auto rounded-xl overflow-hidden shrink-0 hidden sm:block">
+                          <img src={news.image} alt={news.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+                        </div>
+                      )}
+
+                      <div className="flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                {news.category}
+                              </span>
+                              <span className="flex items-center gap-1 text-xs font-bold text-zinc-500">
+                                <Clock size={12} /> {news.time}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={(e) => toggleBookmark(news.id, e)}
+                                className={`p-1.5 rounded-lg transition-colors ${isBookmarked ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                              >
+                                {isBookmarked ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <h3 className="text-lg sm:text-xl font-bold leading-snug mb-2 group-hover:text-red-600 transition-colors">
+                            {news.title}
+                          </h3>
+                          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">Source: {news.source}</p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-auto">
+                          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${getImpactColor(news.impact)}`}>
+                            {getImpactIcon(news.impact)}
+                            {news.impact} Impact
+                          </span>
+                          {news.tags.map(tag => (
+                            <span key={tag} className="text-xs font-medium text-zinc-500 border border-zinc-200 dark:border-zinc-800 px-2 py-1 rounded-md">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI SUMMARY EXPANSION */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="border-t border-zinc-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/50"
+                        >
+                          <div className="p-5 sm:p-6">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg">
+                                <Sparkles size={16} />
+                              </div>
+                              <h4 className="font-bold text-sm uppercase tracking-wider text-zinc-900 dark:text-zinc-100">AI Quick Summary</h4>
+                            </div>
+                            <p className="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed mb-4">
+                              {news.aiSummary}
+                            </p>
+                            <div className="flex items-center gap-3">
+                              <button className="flex items-center gap-1 text-sm font-bold text-red-600 hover:text-red-700 transition-colors">
+                                Read Full Article <ExternalLink size={14} />
+                              </button>
+                              <button className="flex items-center gap-1 text-sm font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
+                                <Share2 size={14} /> Share
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+
+            {filteredNews.length === 0 && (
+              <div className="py-20 text-center bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+                <Search className="mx-auto h-8 w-8 text-zinc-400 mb-3" />
+                <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">No news found</p>
+                <p className="text-sm text-zinc-500 mt-1">Try adjusting your search or category filters.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: SIDEBAR */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Trending Topics Widget */}
+          <div className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-6">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <TrendingUp className="text-red-600" size={20} />
+              Trending Topics
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {['#Nifty50', '#RBI', '#RelianceRetail', '#USFed', '#SwiggyIPO', '#BitcoinETF'].map((tag, i) => (
+                <button key={i} className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-500 rounded-lg text-sm font-bold text-zinc-600 dark:text-zinc-300 transition-colors">
+                  {tag}
+                </button>
               ))}
             </div>
-          )}
+          </div>
 
-          {/* EMPTY SEARCH / NO RESULTS */}
-          {!loading && !error && filteredNews.length === 0 && (
-            <div className="rounded-3xl border border-white/10 bg-zinc-950 p-12 text-center space-y-3">
-              <FaNewspaper className="mx-auto text-4xl text-zinc-600" />
-              <h3 className="text-xl font-bold">No Matching Headlines Found</h3>
-              <p className="text-zinc-400 text-xs">Try searching for a different keyword or switch categories.</p>
-              <button
-                onClick={() => setSearchQuery("")}
-                className="mt-2 rounded-xl bg-yellow-400 px-5 py-2.5 font-bold text-black text-xs hover:bg-yellow-300 cursor-pointer"
-              >
-                Clear Search Filter
-              </button>
+          {/* Market Sentiment Widget */}
+          <div className="bg-gradient-to-br from-zinc-900 to-black dark:from-zinc-900 dark:to-zinc-950 text-white rounded-2xl shadow-xl relative overflow-hidden group">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-bl-full -z-10"></div>
+             <div className="p-6">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
+                  <Sparkles size={16} className="text-green-400" />
+                  AI Market Sentiment
+                </h3>
+                
+                <div className="flex items-end gap-3 mb-6">
+                  <span className="text-5xl font-black text-green-500">
+                    68
+                  </span>
+                  <span className="text-sm font-medium text-zinc-400 mb-2">/100 (Bullish)</span>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span>FII Data</span>
+                      <span className="text-green-400">Net Buyers</span>
+                    </div>
+                    <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-green-500 w-[70%] h-full"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span>Global Cues</span>
+                      <span className="text-red-400">Weak</span>
+                    </div>
+                    <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-red-500 w-[30%] h-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <button className="w-full mt-6 py-2.5 bg-white text-black hover:bg-zinc-200 rounded-xl text-sm font-black transition-colors flex items-center justify-center gap-2">
+                  Full Market Report <ChevronRight size={16} />
+                </button>
+             </div>
+          </div>
+          
+          {/* Bookmarks Quick Access */}
+          {bookmarks.length > 0 && (
+            <div className="bg-white dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-6">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <Bookmark className="text-red-600" size={20} />
+                Saved Reading
+              </h3>
+              <div className="space-y-3">
+                {bookmarks.map(id => {
+                  const item = MOCK_NEWS.find(n => n.id === id);
+                  if(!item) return null;
+                  return (
+                    <div key={id} className="flex gap-3 items-start group cursor-pointer">
+                      <div className="w-2 h-2 mt-1.5 rounded-full bg-red-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-red-600 transition-colors line-clamp-2">
+                        {item.title}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 
-        </main>
+        </div>
       </div>
     </div>
   );

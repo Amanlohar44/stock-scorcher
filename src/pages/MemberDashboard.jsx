@@ -1,107 +1,109 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FaCrown,
-  FaCalendarAlt,
-  FaCreditCard,
-  FaEnvelope,
-  FaGlobe,
-  FaSignOutAlt,
-  FaCopy,
-  FaCheck,
-  FaExclamationTriangle,
-  FaChartLine,
-  FaRobot,
-  FaArrowRight,
-  FaBolt,
-  FaWallet,
-  FaFilter,
-} from "react-icons/fa";
-import { doc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+  Crown, CreditCard, Link as LinkIcon, Users, 
+  Download, Zap, CheckCircle2, Copy, Wallet, 
+  TrendingUp, Activity, ChevronRight, AlertTriangle,
+  History, X, IndianRupee
+} from 'lucide-react';
+import { 
+  doc, getDoc, collection, getDocs, onSnapshot, 
+  addDoc, updateDoc, increment, serverTimestamp 
+} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 import { auth, db } from "../firebase";
-
 import MemberSidebar from "../components/member/MemberSidebar";
 import MemberTopbar from "../components/member/MemberTopbar";
 
 export default function MemberDashboard() {
   const navigate = useNavigate();
 
+  // Firebase States
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [membership, setMembership] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [openSidebar, setOpenSidebar] = useState(false);
-  const [copied, setCopied] = useState(false);
   
-  // Advanced States
+  // Real-time Data States
+  const [affiliateData, setAffiliateData] = useState({
+    totalEarnings: 0,
+    pendingPayout: 0,
+    totalReferrals: 0,
+    conversionRate: "0%",
+    recentReferrals: []
+  });
+  const [invoices, setInvoices] = useState([]);
+  
+  // Layout & UI States
+  const [openSidebar, setOpenSidebar] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  
+  // Dashboard Metrics
   const [watchlistCount, setWatchlistCount] = useState(0);
-  const [virtualBalance, setVirtualBalance] = useState(1000000);
   const [portfolioValue, setPortfolioValue] = useState(1000000);
 
+  // Withdrawal States
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   useEffect(() => {
-    let unsubscribeUserDoc = null;
+    let unsubscribeUser = null;
+    let unsubscribeAffiliate = null;
+    let unsubscribeInvoices = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
-        setUser(null);
-        setUserData(null);
-        setMembership(null);
         setLoading(false);
+        navigate("/login");
         return;
       }
 
       setUser(currentUser);
 
       try {
-        // 1. Real-time User Profile Sync
-        const userDocRef = doc(db, "users", currentUser.uid);
-        unsubscribeUserDoc = onSnapshot(userDocRef, (docSnap) => {
+        // 1. Real-time User Profile
+        unsubscribeUser = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+          if (docSnap.exists()) setUserData(docSnap.data());
+        });
+
+        // 2. Real-time Affiliate Data (REAL DATA)
+        unsubscribeAffiliate = onSnapshot(doc(db, "affiliates", currentUser.uid), (docSnap) => {
           if (docSnap.exists()) {
-            setUserData(docSnap.data());
+            setAffiliateData(docSnap.data());
           }
         });
 
-        // 2. Fetch Membership Details
-        const membershipRef = doc(db, "memberships", currentUser.uid);
-        const membershipSnap = await getDoc(membershipRef);
-        if (membershipSnap.exists()) {
-          setMembership(membershipSnap.data());
-        } else {
-          setMembership(null);
-        }
+        // 3. Real-time Invoices (REAL DATA)
+        unsubscribeInvoices = onSnapshot(collection(db, "users", currentUser.uid, "invoices"), (snapshot) => {
+          const invData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setInvoices(invData.sort((a, b) => b.date - a.date)); // Sort newest first
+        });
 
-        // 3. Fetch Watchlist Count
-        try {
-          const watchlistRef = collection(db, "users", currentUser.uid, "watchlist");
-          const watchlistSnap = await getDocs(watchlistRef);
-          setWatchlistCount(watchlistSnap.size);
-        } catch {
-          setWatchlistCount(0);
-        }
+        // 4. Fetch Membership Details
+        const memSnap = await getDoc(doc(db, "memberships", currentUser.uid));
+        if (memSnap.exists()) setMembership(memSnap.data());
 
-        // 4. Fetch Paper Trading Portfolio Data
-        try {
-          const paperRef = doc(db, "paperTrading", currentUser.uid);
-          const paperSnap = await getDoc(paperRef);
-          if (paperSnap.exists()) {
-            const data = paperSnap.data();
-            const bal = data.balance ?? 1000000;
-            const holdings = data.holdings ?? [];
-            const mktCap = holdings.reduce(
-              (acc, item) => acc + item.quantity * (item.currentPrice || item.averageBuyPrice),
-              0
-            );
-            setVirtualBalance(bal);
-            setPortfolioValue(bal + mktCap);
-          }
-        } catch {
-          // Fallback
+        // 5. Fetch Watchlist Count
+        const watchSnap = await getDocs(collection(db, "users", currentUser.uid, "watchlist"));
+        setWatchlistCount(watchSnap.size);
+
+        // 6. Fetch Paper Trading Portfolio Value
+        const paperSnap = await getDoc(doc(db, "paperTrading", currentUser.uid));
+        if (paperSnap.exists()) {
+          const data = paperSnap.data();
+          const bal = data.balance ?? 1000000;
+          const holdings = data.holdings ?? [];
+          const mktCap = holdings.reduce((acc, item) => acc + item.quantity * (item.currentPrice || item.averageBuyPrice), 0);
+          setPortfolioValue(bal + mktCap);
         }
 
       } catch (error) {
-        console.error("Dashboard Data Fetch Error:", error);
+        console.error("Dashboard Fetch Error:", error);
       } finally {
         setLoading(false);
       }
@@ -109,354 +111,422 @@ export default function MemberDashboard() {
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeUserDoc) unsubscribeUserDoc();
+      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeAffiliate) unsubscribeAffiliate();
+      if (unsubscribeInvoices) unsubscribeInvoices();
     };
-  }, []);
+  }, [navigate]);
+
+  // ==========================================
+  // REAL WITHDRAWAL LOGIC
+  // ==========================================
+  const handleWithdrawRequest = async (e) => {
+    e.preventDefault();
+    const amount = Number(withdrawAmount);
+    
+    if (amount < 500) {
+      showToast("Minimum withdrawal amount is ₹500");
+      return;
+    }
+    if (amount > affiliateData.pendingPayout) {
+      showToast("Amount exceeds your pending balance!");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // 1. Create a withdrawal request document
+      await addDoc(collection(db, "withdrawals"), {
+        uid: user.uid,
+        email: user.email,
+        name: userData?.fullName || "Partner",
+        amount: amount,
+        status: "Pending",
+        requestedAt: serverTimestamp(),
+        paymentMethod: "Bank Transfer" // You can expand this later
+      });
+
+      // 2. Deduct amount from user's affiliate pending payout
+      await updateDoc(doc(db, "affiliates", user.uid), {
+        pendingPayout: increment(-amount)
+      });
+
+      setShowWithdrawModal(false);
+      setWithdrawAmount('');
+      showToast("Withdrawal request submitted successfully!");
+    } catch (error) {
+      console.error("Withdrawal Error:", error);
+      showToast("Failed to process request. Try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleCopyLink = () => {
+    const link = `https://stockscorcher.com/?ref=ELITE_${user?.uid?.substring(0,6) || "USER"}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    showToast("Affiliate link copied!");
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   const formatDate = (date) => {
     if (!date) return "N/A";
     try {
-      if (date?.toDate) {
-        return date.toDate().toLocaleDateString("en-IN", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        });
-      }
-      return new Date(date).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return "N/A";
-    }
+      if (date?.toDate) return date.toDate().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      return new Date(date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    } catch { return "N/A"; }
   };
 
-  const getDaysLeft = (expiryDate) => {
-    if (!expiryDate) return null;
-    try {
-      const expiry = expiryDate?.toDate ? expiryDate.toDate() : new Date(expiryDate);
-      const today = new Date();
-      return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    } catch {
-      return null;
-    }
-  };
-
-  const daysRemaining = membership?.expiryDate ? getDaysLeft(membership.expiryDate) : null;
+  const daysRemaining = membership?.expiryDate 
+    ? Math.ceil(( (membership.expiryDate.toDate ? membership.expiryDate.toDate() : new Date(membership.expiryDate)) - new Date()) / (1000 * 60 * 60 * 24)) 
+    : null;
   const isExpiringSoon = daysRemaining !== null && daysRemaining <= 7 && daysRemaining >= 0;
-
-  const handleCopyPaymentId = (paymentId) => {
-    navigator.clipboard.writeText(paymentId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout Error:", error);
-    }
-  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="h-12 w-12 mx-auto rounded-full border-4 border-yellow-400/20 border-t-yellow-400 animate-spin" />
-          <p className="text-yellow-400 text-xs font-bold tracking-widest uppercase animate-pulse">
-            Initializing Unified Elite Terminal...
-          </p>
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  const currentDisplayName = userData?.fullName || user?.displayName || user?.email?.split("@")[0] || "Elite Trader";
+  const currentDisplayName = userData?.fullName || user?.displayName || user?.email?.split("@")[0] || "Trader";
+  const userReferralLink = `https://stockscorcher.com/?ref=ELITE_${user?.uid?.substring(0,6) || "USER"}`;
 
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-x-hidden selection:bg-yellow-400 selection:text-black">
+    <div className="flex h-screen bg-black text-white overflow-hidden selection:bg-red-500/30 relative">
+      
       <MemberSidebar open={openSidebar} setOpen={setOpenSidebar} />
 
-      <div className="flex-1 min-w-0 w-full">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto custom-scrollbar">
         <MemberTopbar toggleSidebar={() => setOpenSidebar(true)} />
 
-        <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
           
-          {/* TOP WELCOME BANNER */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gradient-to-r from-yellow-400/15 via-zinc-900 to-black p-6 md:p-8 rounded-3xl border border-yellow-500/40 shadow-2xl relative overflow-hidden">
-            <div className="absolute -right-12 -bottom-12 h-48 w-48 rounded-full bg-yellow-400/10 blur-3xl pointer-events-none" />
-            
-            <div className="space-y-2 relative z-10">
-              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/30 bg-yellow-400/20 px-4 py-1 text-yellow-400 text-xs font-black uppercase tracking-wider">
-                <FaBolt className="text-yellow-400" /> ₹9,999 Institutional Command Center
+          {/* 1. HERO HEADER */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-zinc-800/50">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-900/20 text-red-500 text-xs font-bold rounded-full uppercase tracking-widest mb-3 border border-red-900/30">
+                <Crown size={12} /> Elite Member
               </div>
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight">
-                Welcome back, {currentDisplayName} 🚀
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                Hello, {currentDisplayName}
               </h1>
-              <p className="text-gray-300 text-xs sm:text-sm">
-                Your membership subscription and all elite trading terminals are unified in one place.
+              <p className="text-zinc-400 mt-2 text-sm">
+                Manage your Stock Scorcher tools, subscriptions, and partner earnings.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 relative z-10 shrink-0">
-              <button
-                onClick={() => navigate("/paper-trading")}
-                className="bg-yellow-400 text-black px-5 py-3 rounded-2xl font-black text-xs hover:bg-yellow-300 transition shadow-lg cursor-pointer flex items-center gap-2"
-              >
-                <FaWallet /> Launch Paper Arena
+            <div className="flex gap-3">
+              <button onClick={() => navigate("/stock-scanner")} className="px-5 py-2.5 bg-zinc-900 text-white border border-zinc-800 rounded-xl font-bold text-sm hover:bg-zinc-800 transition-colors shadow-sm flex items-center gap-2">
+                <Activity size={16} /> Screener
+              </button>
+              <button onClick={() => navigate("/paper-trading")} className="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20 flex items-center gap-2">
+                <Wallet size={16} /> Paper Trade
               </button>
             </div>
           </div>
 
-          {/* QUICK PERFORMANCE STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Virtual Net Worth</p>
-              <h2 className="text-2xl md:text-3xl font-black text-yellow-400">
-                ₹{portfolioValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-              </h2>
-              <p className="text-[10px] text-green-400 font-bold">Live Portfolio Valuation</p>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">AI Signal Engine</p>
-              <h2 className="text-2xl md:text-3xl font-black text-green-400 flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-green-400 animate-pulse" /> ONLINE
-              </h2>
-              <p className="text-[10px] text-zinc-500">Neural models fully active</p>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Watchlist Assets</p>
-              <h2 className="text-2xl md:text-3xl font-black text-white">
-                {watchlistCount} Tracked
-              </h2>
-              <p className="text-[10px] text-yellow-400 font-semibold">Real-time alerts enabled</p>
-            </div>
-
-            <div className="rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 shadow-xl space-y-2">
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Risk Governance</p>
-              <h2 className="text-2xl md:text-3xl font-black text-green-400">
-                Grade A+
-              </h2>
-              <p className="text-[10px] text-zinc-500">Margin of safety optimized</p>
-            </div>
-          </div>
-
-          {/* EXPIRY WARNING BANNER */}
+          {/* EXPIRY ALERT */}
           {isExpiringSoon && (
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 flex items-center justify-between gap-4">
+            <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-amber-400 text-xl"><FaExclamationTriangle /></span>
+                <AlertTriangle className="text-red-500 shrink-0" size={20} />
                 <div>
-                  <h4 className="text-sm font-bold text-amber-300">Subscription Expiring Soon!</h4>
-                  <p className="text-xs text-amber-400/80">Your plan expires in {daysRemaining} day(s). Renew now to prevent session interruption.</p>
+                  <h4 className="text-sm font-bold text-red-400">Subscription Expiring!</h4>
+                  <p className="text-xs text-red-400/80 mt-0.5">Your elite access expires in {daysRemaining} days.</p>
                 </div>
               </div>
-              <button
-                onClick={() => navigate("/membership")}
-                className="bg-amber-400 text-black px-4 py-2 rounded-xl text-xs font-black hover:bg-amber-300 transition shrink-0 cursor-pointer"
-              >
-                Renew Plan
+              <button onClick={() => navigate("/membership")} className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors shrink-0">
+                Renew Now
               </button>
             </div>
           )}
 
-          {/* MEMBERSHIP STATUS CARD */}
-          {membership ? (
-            <div className="relative overflow-hidden rounded-3xl border border-yellow-500/40 bg-gradient-to-br from-yellow-400/15 via-zinc-900 to-zinc-950 p-6 md:p-8 shadow-2xl">
-              <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-yellow-400/20 blur-3xl pointer-events-none" />
-
-              <div className="relative space-y-8">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-yellow-500 to-yellow-300 text-black text-3xl shadow-xl">
-                      <FaCrown />
-                    </div>
-                    <div>
-                      <p className="text-yellow-400 text-xs uppercase tracking-widest font-black">Active Subscription Tier</p>
-                      <h2 className="text-2xl md:text-3xl font-black text-white">
-                        {membership.plan || "StockScorcher Elite (₹9,999)"}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-black/60 border border-white/10 px-4 py-2.5 rounded-2xl w-fit">
-                    <span className="h-3 w-3 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-green-400 font-bold text-xs uppercase tracking-wider">
-                      {membership.status || "Verified Active"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="rounded-2xl bg-black/50 border border-white/5 p-5 space-y-1">
-                    <div className="flex items-center gap-2 text-zinc-400 text-xs font-semibold">
-                      <FaEnvelope className="text-yellow-400 text-xs" />
-                      <span>Account Email</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-white truncate pt-1">
-                      {membership.email || user?.email || "N/A"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-black/50 border border-white/5 p-5 space-y-1">
-                    <div className="flex items-center gap-2 text-zinc-400 text-xs font-semibold">
-                      <FaCreditCard className="text-yellow-400 text-xs" />
-                      <span>Paid Amount</span>
-                    </div>
-                    <p className="text-sm sm:text-base font-black text-yellow-400 pt-1">
-                      ₹{Number(membership.amount || 9999).toLocaleString("en-IN")}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-black/50 border border-white/5 p-5 space-y-1">
-                    <div className="flex items-center gap-2 text-zinc-400 text-xs font-semibold">
-                      <FaCalendarAlt className="text-yellow-400 text-xs" />
-                      <span>Activated On</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-white pt-1">
-                      {formatDate(membership.purchasedAt)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-black/50 border border-white/5 p-5 space-y-1">
-                    <div className="flex items-center gap-2 text-zinc-400 text-xs font-semibold">
-                      <FaCalendarAlt className="text-yellow-400 text-xs" />
-                      <span>Valid Expiry</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-black text-yellow-400 pt-1">
-                      {membership.expiryDate ? formatDate(membership.expiryDate) : "Lifetime / Perpetual"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-yellow-500/30 bg-zinc-950 p-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
-              <div>
-                <h2 className="text-2xl font-black text-white">Upgrade to StockScorcher Elite 👑</h2>
-                <p className="text-gray-300 text-xs sm:text-sm mt-1">
-                  Unlock the full institutional suite for ₹9,999: Live Market Terminal, Paper Trading Arena, and AI Research Assistant.
-                </p>
-              </div>
+          {/* 2. TAB NAVIGATION */}
+          <div className="flex space-x-2 bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800/50 w-full sm:w-fit">
+            {[
+              { id: 'overview', label: 'Overview', icon: Activity },
+              { id: 'affiliate', label: 'Partner Dashboard', icon: LinkIcon },
+              { id: 'billing', label: 'Billing & Invoices', icon: CreditCard }
+            ].map((tab) => (
               <button
-                onClick={() => navigate("/membership")}
-                className="rounded-2xl bg-yellow-400 px-6 py-3.5 font-black text-black text-xs hover:bg-yellow-300 transition cursor-pointer shadow-lg shrink-0"
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  activeTab === tab.id 
+                    ? 'bg-zinc-800 text-white shadow-sm' 
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+                }`}
               >
-                Unlock Elite Tier Now 🚀
+                <tab.icon size={16} className={activeTab === tab.id ? 'text-red-500' : ''} />
+                <span className="hidden sm:block">{tab.label}</span>
               </button>
-            </div>
-          )}
-
-          {/* ELITE TRADING TERMINALS SHORTCUTS */}
-          <div>
-            <h2 className="text-2xl font-black tracking-tight">Institutional Terminals</h2>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">
-              Direct gateways to high-probability tools, algorithmic scanners, and simulation desks.
-            </p>
+            ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div 
-              onClick={() => navigate("/stock-analysis")}
-              className="group cursor-pointer rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 md:p-8 transition-all duration-300 hover:border-yellow-400/60 hover:bg-zinc-900 shadow-xl space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="h-12 w-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 text-xl font-bold">
-                  <FaChartLine />
-                </div>
-                <span className="flex items-center gap-1 text-xs font-bold text-yellow-400 group-hover:translate-x-1 transition-transform">
-                  Launch <FaArrowRight />
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-white">Live Market Terminal</h3>
-              <p className="text-xs sm:text-sm text-zinc-400">
-                Advanced live feeds, candlestick charting, and intraday volume analysis.
-              </p>
-            </div>
+          {/* 3. TAB CONTENT */}
+          <div className="pt-2">
+            <AnimatePresence mode="wait">
+              
+              {/* --- TAB 1: OVERVIEW --- */}
+              {activeTab === 'overview' && (
+                <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-5">
+                      <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Virtual Portfolio</p>
+                      <h3 className="text-2xl font-black text-white">₹{portfolioValue.toLocaleString("en-IN", {maximumFractionDigits: 0})}</h3>
+                    </div>
+                    <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-5">
+                      <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Tracked Stocks</p>
+                      <h3 className="text-2xl font-black text-white">{watchlistCount} Assets</h3>
+                    </div>
+                    <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-5">
+                      <p className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">AI Engine Status</p>
+                      <h3 className="text-2xl font-black text-green-500 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span> Active
+                      </h3>
+                    </div>
+                  </div>
 
-            <div 
-              onClick={() => navigate("/stock-scanner")}
-              className="group cursor-pointer rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 md:p-8 transition-all duration-300 hover:border-yellow-400/60 hover:bg-zinc-900 shadow-xl space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="h-12 w-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 text-xl font-bold">
-                  <FaFilter />
-                </div>
-                <span className="flex items-center gap-1 text-xs font-bold text-yellow-400 group-hover:translate-x-1 transition-transform">
-                  Launch <FaArrowRight />
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-white">Elite Stock Scanner</h3>
-              <p className="text-xs sm:text-sm text-zinc-400">
-                Filter high-probability breakouts, momentum, and value stocks instantly.
-              </p>
-            </div>
+                  {/* Current Plan Card */}
+                  <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-6 sm:p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/5 rounded-full blur-3xl group-hover:bg-red-600/10 transition-colors"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
+                      <div>
+                        <p className="text-red-500 text-sm font-bold uppercase tracking-wider mb-2">Current Plan</p>
+                        <h2 className="text-3xl font-black text-white mb-6">
+                          {membership ? (membership.plan || "Scorcher Elite") : "Free Tier"}
+                        </h2>
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                          <div>
+                            <p className="text-zinc-500 text-xs font-medium mb-1">Activated On</p>
+                            <p className="text-sm font-bold text-zinc-300">{membership ? formatDate(membership.purchasedAt) : "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-zinc-500 text-xs font-medium mb-1">Valid Until</p>
+                            <p className="text-sm font-bold text-zinc-300">{membership?.expiryDate ? formatDate(membership.expiryDate) : "Lifetime"}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 justify-center min-w-[200px]">
+                        <button onClick={() => navigate("/membership")} className="w-full py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20">
+                          {membership ? "Upgrade/Renew Plan" : "Unlock Elite Access"}
+                        </button>
+                        <button onClick={() => setActiveTab('billing')} className="w-full py-3 bg-zinc-800 text-white rounded-xl font-bold text-sm hover:bg-zinc-700 transition-colors">
+                          View Billing History
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
-            <div 
-              onClick={() => navigate("/ai-assistant")}
-              className="group cursor-pointer rounded-3xl border border-yellow-500/20 bg-zinc-950 p-6 md:p-8 transition-all duration-300 hover:border-yellow-400/60 hover:bg-zinc-900 shadow-xl space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="h-12 w-12 rounded-2xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center text-yellow-400 text-xl font-bold">
-                  <FaRobot />
-                </div>
-                <span className="flex items-center gap-1 text-xs font-bold text-yellow-400 group-hover:translate-x-1 transition-transform">
-                  Launch <FaArrowRight />
-                </span>
-              </div>
-              <h3 className="text-xl font-black text-white">AI Deep Analysis Engine</h3>
-              <p className="text-xs sm:text-sm text-zinc-400">
-                Automated buy/sell triggers powered by neural network market prediction.
-              </p>
-            </div>
+              {/* --- TAB 2: PARTNER / AFFILIATE --- */}
+              {activeTab === 'affiliate' && (
+                <motion.div key="affiliate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Earnings Card */}
+                    <div className="md:col-span-2 bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl p-6 sm:p-8">
+                      <div className="flex items-start justify-between mb-8">
+                        <div>
+                          <p className="text-zinc-400 text-sm font-bold uppercase tracking-wider mb-2">Total Earnings</p>
+                          <h2 className="text-4xl font-black text-white">₹{(affiliateData?.totalEarnings || 0).toLocaleString('en-IN')}</h2>
+                        </div>
+                        <div className="bg-green-500/10 p-3 rounded-xl">
+                          <Wallet className="text-green-500" size={24} />
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-6 border-t border-zinc-800">
+                        <div>
+                          <p className="text-zinc-500 text-xs font-medium mb-1">Available to Withdraw</p>
+                          <p className="text-xl font-bold text-green-400">₹{(affiliateData?.pendingPayout || 0).toLocaleString('en-IN')}</p>
+                        </div>
+                        <button 
+                          onClick={() => setShowWithdrawModal(true)}
+                          disabled={(affiliateData?.pendingPayout || 0) < 500}
+                          className="px-6 py-2.5 bg-white text-black rounded-xl font-bold text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Withdraw
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Stats Card */}
+                    <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-6 flex flex-col justify-center">
+                       <Users className="text-red-500 mb-3" size={24} />
+                       <p className="text-zinc-400 text-sm font-bold uppercase tracking-wider mb-1">Total Referrals</p>
+                       <h3 className="text-3xl font-black text-white mb-4">{affiliateData?.totalReferrals || 0}</h3>
+                       <div className="flex items-center gap-2 text-sm font-bold text-green-500">
+                         <TrendingUp size={16} /> {affiliateData?.conversionRate || "0%"} Conversion
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Link Generator */}
+                  <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6 sm:p-8">
+                    <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                      <LinkIcon className="text-red-500" size={20} /> Your Affiliate Link
+                    </h3>
+                    <p className="text-zinc-400 text-sm mb-6">Earn 30% recurring commission for every user who joins Elite through your link.</p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1 relative">
+                        <input 
+                          type="text" 
+                          readOnly 
+                          value={userReferralLink}
+                          className="w-full bg-black border border-zinc-700 rounded-xl pl-4 pr-12 py-3.5 text-sm font-medium text-zinc-300 focus:outline-none focus:border-red-500"
+                        />
+                        <button 
+                          onClick={handleCopyLink}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-zinc-400 hover:text-white transition-colors bg-zinc-800 rounded-lg"
+                        >
+                          {copiedLink ? <CheckCircle2 className="text-green-500" size={18} /> : <Copy size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Recent Referrals List */}
+                  {affiliateData?.recentReferrals?.length > 0 && (
+                    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6">
+                      <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Recent Conversions</h3>
+                      <div className="space-y-3">
+                        {affiliateData.recentReferrals.map((ref, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-zinc-800/30 p-4 rounded-xl border border-zinc-800">
+                            <div>
+                              <p className="text-sm font-bold text-white">{ref.user}</p>
+                              <p className="text-xs text-zinc-500 mt-1">{ref.date}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-green-400">+₹{ref.commission.toLocaleString('en-IN')}</p>
+                              <p className="text-[10px] font-bold text-zinc-500 uppercase mt-1">{ref.plan}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* --- TAB 3: BILLING --- */}
+              {activeTab === 'billing' && (
+                <motion.div key="billing" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl overflow-hidden">
+                  <div className="p-6 border-b border-zinc-800/50 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <History className="text-red-500" size={20} /> Invoice History
+                    </h3>
+                  </div>
+                  <div className="divide-y divide-zinc-800/50">
+                    {invoices.map((inv) => (
+                      <div key={inv.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-zinc-800/30 transition-colors">
+                        <div>
+                          <p className="font-bold text-white mb-1">{inv.plan || "Membership"}</p>
+                          <div className="flex items-center gap-3 text-xs font-medium text-zinc-500">
+                            <span>{formatDate(inv.date)}</span>
+                            <span className="w-1 h-1 rounded-full bg-zinc-700"></span>
+                            <span>{inv.id}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <span className="font-bold text-white">₹{Number(inv.amount).toLocaleString('en-IN')}</span>
+                          <button className="text-zinc-500 hover:text-white transition-colors p-2 bg-zinc-900 rounded-lg">
+                            <Download size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {invoices.length === 0 && (
+                      <div className="p-8 text-center text-zinc-500 text-sm">
+                        No billing history found in database.
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+            </AnimatePresence>
           </div>
-
-          {/* SECURE TRANSACTION HASH */}
-          {membership?.paymentId && (
-            <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Secure Transaction Reference ID</p>
-                <p className="text-xs sm:text-sm font-mono text-yellow-400 mt-1 break-all">
-                  {membership.paymentId}
-                </p>
-              </div>
-              <button
-                onClick={() => handleCopyPaymentId(membership.paymentId)}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0"
-              >
-                {copied ? <FaCheck className="text-green-400" /> : <FaCopy />}
-                {copied ? "Copied ID!" : "Copy Reference ID"}
-              </button>
-            </div>
-          )}
-
-          {/* FOOTER ACTIONS */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-white/10">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-900 px-6 py-3.5 font-bold text-xs text-white transition hover:border-yellow-400/40 cursor-pointer"
-            >
-              <FaGlobe />
-              Visit StockScorcher Home
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 px-6 py-3.5 font-bold text-xs text-red-400 transition hover:bg-red-500/10 cursor-pointer"
-            >
-              <FaSignOutAlt />
-              Logout Securely
-            </button>
-          </div>
-
         </main>
       </div>
+
+      {/* WITHDRAWAL MODAL */}
+      <AnimatePresence>
+        {showWithdrawModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl relative"
+            >
+              <button onClick={() => setShowWithdrawModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+              
+              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <Wallet className="text-green-500" size={24} /> Withdraw Funds
+              </h3>
+              <p className="text-zinc-400 text-sm mb-6">Available Balance: <strong className="text-white">₹{(affiliateData?.pendingPayout || 0).toLocaleString('en-IN')}</strong></p>
+
+              <form onSubmit={handleWithdrawRequest} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Amount to Withdraw (₹)</label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                    <input 
+                      type="number" 
+                      required
+                      min="500"
+                      max={affiliateData?.pendingPayout || 0}
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className="w-full bg-black border border-zinc-800 rounded-xl pl-12 pr-4 py-3 font-bold text-white focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all"
+                    />
+                  </div>
+                  <p className="text-[11px] text-zinc-500 mt-2">Minimum withdrawal is ₹500. Processing takes 2-3 business days.</p>
+                </div>
+                
+                <button 
+                  type="submit" 
+                  disabled={isProcessing || !withdrawAmount || Number(withdrawAmount) > affiliateData?.pendingPayout}
+                  className="w-full py-3.5 bg-red-600 text-white rounded-xl font-bold transition-colors hover:bg-red-700 disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                  {isProcessing ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Processing...</>
+                  ) : "Submit Request"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 bg-white text-black px-4 py-3 rounded-xl shadow-2xl"
+          >
+            <div className="bg-green-500/20 text-green-600 p-1 rounded-full">
+              <CheckCircle2 size={16} strokeWidth={3} />
+            </div>
+            <p className="text-sm font-bold">{toastMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

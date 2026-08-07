@@ -14,7 +14,10 @@ import {
   X, 
   LockKeyhole, 
   ShieldCheck, 
-  Loader2 
+  Loader2,
+  Terminal,
+  Activity,
+  Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -121,7 +124,6 @@ export default function Login() {
     } catch (error) {
       console.error("Login Error:", error);
       
-      // Professional Error Handling for Wrong Credentials / Password
       let errorMessage = "Failed to login. Please check your credentials.";
       if (
         error.code === "auth/wrong-password" || 
@@ -141,117 +143,164 @@ export default function Login() {
     }
   };
 
-  // --------------------------------
-  // LOADING BUTTON TEXT
-  // --------------------------------
   const getLoginButtonText = () => {
     if (loading) {
-      if (checkingPurchase) return "Checking Your Access...";
-      return "Logging In...";
+      if (checkingPurchase) return "Verifying Access Rights...";
+      return "Initializing Terminal...";
     }
-    return "Login to Terminal";
+    return "Launch Terminal Session";
   };
 
   return (
     <>
       <Helmet>
-        <title>Login to Your Account | Stock Scorcher</title>
+        <title>Secure Terminal Login | Stock Scorcher</title>
         <meta name="description" content="Access your Stock Scorcher trading dashboard, AI signals, and premium course modules securely." />
       </Helmet>
 
-      <div className="relative min-h-screen bg-black text-white flex items-center justify-center px-4 py-16 selection:bg-yellow-400 selection:text-black overflow-hidden">
+      {/* Cinematic Dark Terminal Background with Animated Glowing Orbs */}
+      <div className="relative min-h-screen bg-[#000000] text-white flex items-center justify-center px-4 py-20 selection:bg-yellow-400 selection:text-black overflow-hidden font-sans">
         
-        {/* Cinematic Background Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/10 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[160px] pointer-events-none" />
-
+        {/* Animated Background Glowing Elements */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 bg-[#060606] border border-white/10 p-8 sm:p-10 rounded-[2.5rem] w-full max-w-md shadow-[0_0_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-yellow-500/15 rounded-full blur-[200px] pointer-events-none" 
+        />
+        <motion.div 
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.25, 0.1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[200px] pointer-events-none" 
+        />
+        
+        {/* Subtle Tech Grid Pattern Overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(#333_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none"></div>
+
+        {/* Main Floating Animated Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 bg-gradient-to-b from-[#0e0e0e] to-[#030303] border border-white/10 p-8 sm:p-12 rounded-[3.5rem] w-full max-w-lg shadow-[0_0_100px_rgba(0,0,0,0.95)] backdrop-blur-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
         >
           
-          {/* Logo / Header */}
-          <div className="text-center mb-8">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-yellow-400 to-amber-500 text-black shadow-lg shadow-yellow-400/20">
-              <LockKeyhole size={28} />
+          {/* Terminal Header Bar */}
+          <div className="flex items-center justify-between pb-6 mb-8 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <motion.div 
+                whileHover={{ rotate: 15, scale: 1.1 }}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-yellow-400 to-amber-500 text-black font-black shadow-[0_0_25px_rgba(250,204,21,0.4)]"
+              >
+                <Terminal size={22} />
+              </motion.div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-yellow-500 flex items-center gap-1">
+                  <Zap size={10} className="fill-yellow-500" /> Secure Gateway
+                </span>
+                <h3 className="text-xs font-bold text-zinc-300">SCORCHER-CORE v2.8</h3>
+              </div>
             </div>
-
-            <h1 className="text-3xl font-black tracking-tight text-white">
-              Welcome <span className="text-yellow-400">Back</span>
-            </h1>
-
-            <p className="text-zinc-400 text-sm mt-2 font-light">
-              Secure access to your Stock Scorcher account
-            </p>
+            
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wider shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> Node Active
+            </div>
           </div>
 
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="mb-8"
+          >
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+              Terminal <span className="bg-gradient-to-b from-yellow-300 to-yellow-600 bg-clip-text text-transparent">Login</span>
+            </h1>
+            <p className="text-zinc-400 text-sm mt-2 font-medium">
+              Authenticate to unlock high-frequency AI intelligence & tools
+            </p>
+          </motion.div>
+
           {/* Email Input */}
-          <div className="mb-5">
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
-              Email Address
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="mb-6"
+          >
+            <label className="block text-xs font-black text-zinc-300 uppercase tracking-widest mb-2.5">
+              Trader Email ID
             </label>
             <input
               type="email"
-              placeholder="trader@example.com"
+              placeholder="trader@stockscorcher.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="w-full bg-black border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:border-yellow-400 transition-colors disabled:opacity-50 placeholder:text-zinc-600"
+              className="w-full bg-black/80 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all disabled:opacity-50 placeholder:text-zinc-600 shadow-inner font-medium"
             />
-          </div>
+          </motion.div>
 
           {/* Password Input */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                Password
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="mb-8"
+          >
+            <div className="flex justify-between items-center mb-2.5">
+              <label className="block text-xs font-black text-zinc-300 uppercase tracking-widest">
+                Access Password
               </label>
               <Link
                 to="/forgot-password"
-                className="text-xs text-yellow-400 hover:text-yellow-300 transition-colors cursor-pointer font-medium"
+                className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors cursor-pointer font-bold tracking-wide"
               >
-                Forgot Password?
+                Reset Password?
               </Link>
             </div>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="••••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleLogin();
               }}
-              className="w-full bg-black border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:border-yellow-400 transition-colors disabled:opacity-50 placeholder:text-zinc-600"
+              className="w-full bg-black/80 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-all disabled:opacity-50 placeholder:text-zinc-600 shadow-inner font-medium"
             />
-          </div>
+          </motion.div>
 
-          {/* Login Button */}
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full bg-yellow-400 hover:bg-yellow-300 text-black py-4 rounded-xl font-extrabold text-sm transition-all duration-300 shadow-[0_0_25px_rgba(250,204,21,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* Login Button with Pulse Glow */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
           >
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {getLoginButtonText()}
-          </button>
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black py-4.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 shadow-[0_0_35px_rgba(250,204,21,0.3)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            >
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {getLoginButtonText()}
+            </button>
+          </motion.div>
 
           {/* Signup Link */}
-          <p className="text-center text-zinc-400 text-sm mt-8 font-light">
-            Don't have an account?{" "}
+          <p className="text-center text-zinc-400 text-sm mt-8 font-medium">
+            New to the ecosystem?{" "}
             <Link
               to="/signup"
               className="text-yellow-400 font-bold hover:underline"
             >
-              Sign Up
+              Create Account
             </Link>
           </p>
 
-          <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-2 text-[11px] text-zinc-500 font-medium">
-            <ShieldCheck size={14} className="text-zinc-400" />
-            Secured with 256-Bit Firebase Encryption
+          <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-2 text-[11px] text-zinc-500 font-semibold tracking-wider">
+            <ShieldCheck size={14} className="text-yellow-500" />
+            Secured via 256-Bit Military Grade Encryption
           </div>
 
         </motion.div>
@@ -262,13 +311,13 @@ export default function Login() {
       ================================= */}
       <AnimatePresence>
         {showDashboardChoice && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-xl px-4 py-6">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-2xl px-4 py-6 font-sans">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.3 }}
-              className="relative w-full max-w-2xl overflow-hidden rounded-[2.5rem] border border-yellow-400/30 bg-[#060606] shadow-[0_0_80px_rgba(250,204,21,0.15)]"
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full max-w-2xl overflow-hidden rounded-[3.5rem] border border-yellow-500/30 bg-gradient-to-b from-[#0e0e0e] to-[#030303] shadow-[0_0_120px_rgba(250,204,21,0.2)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
             >
               
               {/* Close Button */}
@@ -281,20 +330,16 @@ export default function Login() {
 
               {/* Header */}
               <div className="border-b border-white/10 px-6 py-10 text-center md:px-10">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-300 to-amber-500 text-black shadow-lg shadow-yellow-400/20">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-300 to-amber-500 text-black shadow-lg shadow-yellow-400/30">
                   <Crown size={30} />
                 </div>
 
                 <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                  Welcome Back, Trader! 👋
+                  Select Workspace 🚀
                 </h2>
 
-                <p className="mt-2 text-zinc-400 text-sm font-light">
-                  You have active access to both your <span className="text-yellow-400 font-semibold">Course</span> and <span className="text-green-400 font-semibold">Membership</span>.
-                </p>
-
-                <p className="mt-1 text-xs text-zinc-500">
-                  Select which workspace you would like to open.
+                <p className="mt-2 text-zinc-400 text-sm font-medium">
+                  You have active access to both <span className="text-yellow-400 font-bold">Course Modules</span> & <span className="text-green-400 font-bold">VIP Membership</span>.
                 </p>
               </div>
 
@@ -302,71 +347,75 @@ export default function Login() {
               <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2 md:p-8">
 
                 {/* COURSE DASHBOARD */}
-                <button
+                <motion.button
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     setShowDashboardChoice(false);
                     navigate("/dashboard", { replace: true });
                   }}
-                  className="group relative overflow-hidden rounded-3xl border border-yellow-400/30 bg-gradient-to-br from-yellow-400/[0.08] to-black p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-yellow-400 hover:shadow-[0_0_35px_rgba(250,204,21,0.15)] cursor-pointer flex flex-col justify-between"
+                  className="group relative overflow-hidden rounded-[2.5rem] border border-yellow-500/30 bg-gradient-to-br from-yellow-400/[0.08] to-black p-6 text-left transition-all duration-300 hover:border-yellow-400 hover:shadow-[0_0_45px_rgba(250,204,21,0.2)] cursor-pointer flex flex-col justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                 >
                   <div>
                     <div className="flex items-start justify-between mb-6">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-400 text-black font-bold">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-400 text-black font-bold shadow-lg">
                         <GraduationCap size={24} />
                       </div>
-                      <ArrowRight size={20} className="text-yellow-400 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight size={20} className="text-yellow-400 transition-transform group-hover:translate-x-1.5" />
                     </div>
 
-                    <h3 className="text-xl font-extrabold text-white tracking-tight">
+                    <h3 className="text-xl font-black text-white tracking-tight">
                       Course Dashboard
                     </h3>
 
-                    <p className="mt-2 text-xs leading-relaxed text-zinc-400 font-light">
-                      Access your purchased trading course, video lessons, learning modules and resources.
+                    <p className="mt-2 text-xs leading-relaxed text-zinc-400 font-medium">
+                      Access your purchased trading course, video modules, and learning materials.
                     </p>
                   </div>
 
-                  <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-yellow-400">
+                  <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-yellow-400 uppercase tracking-wider">
                     Open Course Area <ArrowRight size={14} />
                   </div>
-                </button>
+                </motion.button>
 
                 {/* MEMBER DASHBOARD */}
-                <button
+                <motion.button
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     setShowDashboardChoice(false);
                     navigate("/member-dashboard", { replace: true });
                   }}
-                  className="group relative overflow-hidden rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-500/[0.08] to-black p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-green-400 hover:shadow-[0_0_35px_rgba(34,197,94,0.15)] cursor-pointer flex flex-col justify-between"
+                  className="group relative overflow-hidden rounded-[2.5rem] border border-green-500/30 bg-gradient-to-br from-green-500/[0.08] to-black p-6 text-left transition-all duration-300 hover:border-green-400 hover:shadow-[0_0_45px_rgba(34,197,94,0.2)] cursor-pointer flex flex-col justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                 >
                   <div>
                     <div className="flex items-start justify-between mb-6">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 text-white font-bold">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 text-white font-bold shadow-lg">
                         <Crown size={24} />
                       </div>
-                      <ArrowRight size={20} className="text-green-400 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight size={20} className="text-green-400 transition-transform group-hover:translate-x-1.5" />
                     </div>
 
-                    <h3 className="text-xl font-extrabold text-white tracking-tight">
+                    <h3 className="text-xl font-black text-white tracking-tight">
                       Member Dashboard
                     </h3>
 
-                    <p className="mt-2 text-xs leading-relaxed text-zinc-400 font-light">
-                      Access AI stock signals, paper trading terminal, portfolio tracker and VIP tools.
+                    <p className="mt-2 text-xs leading-relaxed text-zinc-400 font-medium">
+                      Access AI stock signals, paper trading terminal, and VIP intelligence tools.
                     </p>
                   </div>
 
-                  <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-green-400">
-                    Open Member Area <ArrowRight size={14} /> ke sath
+                  <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-green-400 uppercase tracking-wider">
+                    Open Member Area <ArrowRight size={14} />
                   </div>
-                </button>
+                </motion.button>
 
               </div>
 
               {/* Footer Note */}
-              <div className="border-t border-white/5 px-6 py-4 text-center bg-black/40">
-                <p className="text-[11px] text-zinc-500">
-                  You can easily switch between workspaces anytime from the main navigation.
+              <div className="border-t border-white/5 px-6 py-5 text-center bg-black/60">
+                <p className="text-[11px] text-zinc-400 font-medium">
+                  You can seamlessly toggle between workspaces at any time from your account panel.
                 </p>
               </div>
 
