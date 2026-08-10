@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import JoditEditor from "jodit-react"; // 🔥 Added Rich Text Editor
+import JoditEditor from "jodit-react";
 
 import {
   collection,
@@ -12,6 +12,9 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
+
+// 🔥 ADDED FIREBASE STORAGE IMPORTS FOR SAFE MEDIA UPLOADS
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"; 
 
 import { auth, db } from "../firebase";
 
@@ -66,11 +69,13 @@ export default function Admin() {
 
   // Direct Upload Blog Form States
   const [blogTitle, setBlogTitle] = useState("");
-  const [blogDesc, setBlogDesc] = useState(""); // Now stores HTML content
+  const [blogDesc, setBlogDesc] = useState(""); 
   const [blogCategory, setBlogCategory] = useState("");
-  const [blogImage, setBlogImage] = useState("");
-  const [blogVideo, setBlogVideo] = useState("");
-  const editor = useRef(null); // Ref for Jodit Editor
+  const [blogImage, setBlogImage] = useState(null); // Changed to hold File object
+  const [blogVideo, setBlogVideo] = useState(null); // Changed to hold File object
+  const [isPublishing, setIsPublishing] = useState(false); // 🔥 Added loading state
+  
+  const editor = useRef(null);
 
   // Jodit Editor Config (Dark Mode Styling)
   const joditConfig = {
@@ -148,7 +153,11 @@ export default function Admin() {
       setLiveClasses(liveSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
 
       const blogSnapshot = await getDocs(collection(db, "blogs"));
-      setBlogs(blogSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      // Sort blogs newest first
+      const sortedBlogs = blogSnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+      setBlogs(sortedBlogs);
 
       try {
         const token = await auth.currentUser.getIdToken();
@@ -165,9 +174,6 @@ export default function Admin() {
     }
   };
 
-  // ===========================
-  // PARTNER MANAGEMENT HANDLERS (Dynamic Percentage Update)
-  // ===========================
   const handlePartnerUpdate = async (partnerDocId, newStatus, newPercent) => {
     try {
       const token = await auth.currentUser.getIdToken();
@@ -184,9 +190,6 @@ export default function Admin() {
     }
   };
 
-  // ===========================
-  // ADD MODULE
-  // ===========================
   const handleAddModule = async () => {
     if (!title || !video || !day) {
       alert("Please fill all required fields");
@@ -249,28 +252,85 @@ export default function Admin() {
     await deleteDoc(doc(db, "liveClasses", id)); loadDashboard();
   };
 
-  const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => { setBlogImage(reader.result); }; reader.readAsDataURL(file); };
-  const handleVideoUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => { setBlogVideo(reader.result); }; reader.readAsDataURL(file); };
 
+  // 🔥 UPDATED: Now saves the actual File object to state instead of base64 string
+  const handleImageUpload = (e) => { 
+    const file = e.target.files[0]; 
+    if (file) setBlogImage(file); 
+  };
+  
+  const handleVideoUpload = (e) => { 
+    const file = e.target.files[0]; 
+    if (file) setBlogVideo(file); 
+  };
+
+  // 🔥 UPDATED: Secure, production-ready publish function
   const handleAddBlog = async () => {
-    if (!blogTitle || !blogDesc) { alert("Please fill blog title and content"); return; }
+    if (!blogTitle || !blogDesc || blogDesc.trim() === "<p><br></p>") { 
+      alert("Please fill blog title and article content."); 
+      return; 
+    }
+    
+    setIsPublishing(true); // Lock the button
+
     try {
+      const storage = getStorage();
+      let finalImageUrl = "";
+      let finalVideoUrl = "";
+
+      // 1. Upload Banner Image if exists
+      if (blogImage) {
+        const imageRef = ref(storage, `blogs/images/${Date.now()}_${blogImage.name}`);
+        await uploadBytes(imageRef, blogImage);
+        finalImageUrl = await getDownloadURL(imageRef);
+      }
+
+      // 2. Upload Video if exists (Optional)
+      if (blogVideo) {
+        const videoRef = ref(storage, `blogs/videos/${Date.now()}_${blogVideo.name}`);
+        await uploadBytes(videoRef, blogVideo);
+        finalVideoUrl = await getDownloadURL(videoRef);
+      }
+
+      // 3. Save to Firestore DB
       await addDoc(collection(db, "blogs"), { 
         title: blogTitle, 
-        description: blogDesc, // This now contains Jodit HTML
+        description: blogDesc, 
         category: blogCategory || "General", 
-        image: blogImage || "", 
-        videoUrl: blogVideo || "", 
+        image: finalImageUrl, 
+        videoUrl: finalVideoUrl, 
         createdAt: new Date() 
       });
+
       alert("Blog Published Successfully!");
-      setBlogTitle(""); setBlogDesc(""); setBlogCategory(""); setBlogImage(""); setBlogVideo(""); loadDashboard();
-    } catch (err) { alert("Failed to publish blog"); }
+      
+      // Reset form
+      setBlogTitle(""); 
+      setBlogDesc(""); 
+      setBlogCategory(""); 
+      setBlogImage(null); 
+      setBlogVideo(null); 
+      
+      // Reset file input UI manually
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      fileInputs.forEach(input => input.value = "");
+
+      // Refresh list
+      loadDashboard(); 
+
+    } catch (err) { 
+      console.error("Firestore Upload Error:", err);
+      // 🔥 Now shows EXACT error to the admin
+      alert(`Failed to publish blog: ${err.message}`); 
+    } finally {
+      setIsPublishing(false); // Unlock the button
+    }
   };
 
   const handleDeleteBlog = async (id) => {
-    if (!window.confirm("Delete this Article?")) return;
-    await deleteDoc(doc(db, "blogs", id)); loadDashboard();
+    if (!window.confirm("Delete this Article? (Note: Media files stay in storage to preserve existing links)")) return;
+    await deleteDoc(doc(db, "blogs", id)); 
+    loadDashboard();
   };
 
   const handleAddCoupon = async () => {
@@ -479,11 +539,18 @@ export default function Admin() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Photo / Banner</label><input type="file" accept="image/*" onChange={handleImageUpload} className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-yellow-400 file:text-black hover:file:bg-yellow-300 cursor-pointer" />{blogImage && <p className="text-[10px] text-green-400 mt-1 font-bold">✓ Image Selected Successfully</p>}</div>
-                    <div><label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Video (Optional)</label><input type="file" accept="video/*" onChange={handleVideoUpload} className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-blue-500 file:text-white hover:file:bg-blue-400 cursor-pointer" />{blogVideo && <p className="text-[10px] text-blue-400 mt-1 font-bold">✓ Video Selected Successfully</p>}</div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Photo / Banner</label>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-yellow-400 file:text-black hover:file:bg-yellow-300 cursor-pointer" />
+                      {blogImage && <p className="text-[10px] text-green-400 mt-1 font-bold">✓ Image Selected: {blogImage.name}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Upload Video (Optional)</label>
+                      <input type="file" accept="video/*" onChange={handleVideoUpload} className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-zinc-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-blue-500 file:text-white hover:file:bg-blue-400 cursor-pointer" />
+                      {blogVideo && <p className="text-[10px] text-blue-400 mt-1 font-bold">✓ Video Selected: {blogVideo.name}</p>}
+                    </div>
                   </div>
 
-                  {/* 🔥 RICH TEXT EDITOR REPLACES TEXTAREA 🔥 */}
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Full Article Content (Rich Text)</label>
                     <div className="text-black jodit-dark-wrapper">
@@ -491,13 +558,22 @@ export default function Admin() {
                         ref={editor}
                         value={blogDesc}
                         config={joditConfig}
-                        onBlur={newContent => setBlogDesc(newContent)} // Updates content on blur
+                        onChange={newContent => setBlogDesc(newContent)} // 🔥 CHANGED to onChange to prevent typing race condition
                       />
                     </div>
                   </div>
                 </div>
 
-                <button onClick={handleAddBlog} className="mt-6 rounded-xl bg-yellow-400 hover:bg-yellow-300 px-8 py-4 text-xs font-black text-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] cursor-pointer active:scale-95">🚀 Publish Article</button>
+                <button 
+                  onClick={handleAddBlog} 
+                  disabled={isPublishing}
+                  className={`mt-6 rounded-xl px-8 py-4 text-xs font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(250,204,21,0.3)] 
+                    ${isPublishing 
+                        ? 'bg-yellow-600 text-zinc-300 cursor-not-allowed' 
+                        : 'bg-yellow-400 hover:bg-yellow-300 text-black cursor-pointer active:scale-95'}`}
+                >
+                  {isPublishing ? "⏳ Publishing... Please Wait" : "🚀 Publish Article"}
+                </button>
               </div>
 
               <div className="bg-zinc-950 border border-yellow-500/30 rounded-[2rem] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
@@ -513,7 +589,7 @@ export default function Admin() {
                             <h4 className="font-black text-white text-base tracking-tight">{blog.title}</h4>
                             <div 
                               className="text-xs text-zinc-400 mt-1 line-clamp-2 font-light"
-                              dangerouslySetInnerHTML={{ __html: blog.description }} // Renders HTML properly in preview
+                              dangerouslySetInnerHTML={{ __html: blog.description }} 
                             />
                           </div>
                         </div>
@@ -575,7 +651,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Basic Jodit dark mode overrides */}
       <style dangerouslySetInnerHTML={{__html: `
         .jodit-dark-wrapper .jodit-container {
           background-color: #000000 !important;
