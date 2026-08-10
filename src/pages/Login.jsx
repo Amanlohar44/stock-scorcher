@@ -122,25 +122,26 @@ export default function Login() {
       navigate("/membership", { replace: true });
 
     } catch (error) {
-      console.error("Login Error:", error);
-      
-      let errorMessage = "Failed to login. Please check your credentials.";
-      if (
-        error.code === "auth/wrong-password" || 
-        error.code === "auth/user-not-found" || 
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/invalid-email"
-      ) {
-        errorMessage = "❌ Incorrect email or password. Please try again.";
-      } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "⚠️ Too many failed attempts. Access temporarily blocked. Please try later.";
-      }
-      
-      alert(errorMessage);
-    } finally {
-      setLoading(false);
-      setCheckingPurchase(false);
-    }
+  console.error("🔥 LOGIN ERROR CODE:", error.code);
+  console.error("🔥 LOGIN ERROR MESSAGE:", error.message);
+  console.error("🔥 FULL LOGIN ERROR:", error);
+
+  let errorMessage = "Failed to login. Please check your credentials.";
+
+  if (
+    error.code === "auth/wrong-password" ||
+    error.code === "auth/user-not-found" ||
+    error.code === "auth/invalid-credential" ||
+    error.code === "auth/invalid-email"
+  ) {
+    errorMessage = "❌ Incorrect email or password. Please try again.";
+  } else if (error.code === "auth/too-many-requests") {
+    errorMessage =
+      "⚠️ Too many failed attempts. Access temporarily blocked. Please try later.";
+  }
+
+  alert(errorMessage);
+}
   };
 
   const getLoginButtonText = () => {

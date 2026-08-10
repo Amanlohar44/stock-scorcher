@@ -9,14 +9,18 @@ import {
   FaTags,
   FaVideo,
   FaPenFancy,
-  FaHandshake, // Naya icon add kiya hai Partners ke liye
+  FaHandshake,
+  FaRobot, // 🔥 Naya AI Icon add kiya hai
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom"; // 🔥 Routing ke liye add kiya hai
 
 export default function AdminSidebar({
   active,
   setActive,
   handleLogout,
 }) {
+  const navigate = useNavigate(); // Hook for navigating to the new page
+
   const menu = [
     {
       id: "dashboard",
@@ -51,7 +55,7 @@ export default function AdminSidebar({
     {
       id: "partners",
       icon: <FaHandshake />,
-      title: "Partners", // Ye naya option add ho gaya
+      title: "Partners",
     },
     {
       id: "coupons",
@@ -77,6 +81,8 @@ export default function AdminSidebar({
         </p>
 
         <div className="space-y-2 text-xs font-bold uppercase tracking-wider">
+          
+          {/* PURANE MENU ITEMS */}
           {menu.map((item) => (
             <button
               key={item.id}
@@ -92,9 +98,27 @@ export default function AdminSidebar({
             </button>
           ))}
 
+          {/* 🔥 NAYA AI MARKETING AUTOPILOT BUTTON 🔥 */}
+          <div className="pt-4 pb-2 border-t border-white/10 mt-4">
+            <button
+              onClick={() => navigate("/admin/ai-marketing")}
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-400 transition cursor-pointer shadow-[0_0_15px_rgba(59,130,246,0.15)] group"
+            >
+              <div className="flex items-center gap-4">
+                <FaRobot className="text-lg group-hover:animate-bounce" />
+                <span className="font-black">AI Autopilot</span>
+              </div>
+              {/* Pulsing Dot Indicator */}
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+              </span>
+            </button>
+          </div>
+
           <button
             onClick={() => window.open("/", "_blank")}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-zinc-900 text-zinc-300 hover:text-white transition cursor-pointer"
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl hover:bg-zinc-900 text-zinc-300 hover:text-white transition cursor-pointer mt-2"
           >
             <FaGlobe />
             Website

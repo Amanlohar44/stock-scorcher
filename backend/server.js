@@ -27,7 +27,7 @@ const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.use(cors({
-  origin: ["https://stock-scorcher-eight.vercel.app", "https://stockscorcher.com", "https://www.stockscorcher.com", "http://localhost:5177", "http://localhost:5174"],
+  origin: ["https://stock-scorcher-eight.vercel.app", "https://stockscorcher.com", "https://www.stockscorcher.com", "http://localhost:5173", "http://localhost:5174"],
   methods: ["GET", "POST", "PUT", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,

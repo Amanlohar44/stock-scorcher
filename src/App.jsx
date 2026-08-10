@@ -8,6 +8,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Admin from "./pages/Admin";
+import AiMarketingCenter from "./pages/AiMarketingCenter"; // <--- NEW IMPORT
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import VerifyCertificate from "./pages/VerifyCertificate";
@@ -115,6 +116,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {/* ---> NEW AI MARKETING CENTER ROUTE <--- */}
+          <Route
+            path="/admin/ai-marketing"
+            element={
+              <ProtectedRoute>
+                <AiMarketingCenter />
+              </ProtectedRoute>
+            }
+          />
+          {/* -------------------------------------- */}
           <Route
             path="/partner/dashboard"
             element={
