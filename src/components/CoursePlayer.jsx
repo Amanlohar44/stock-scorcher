@@ -5,6 +5,7 @@ export default function CoursePlayer({
   onComplete,
 }) {
   const isCompleted = completedLessons?.includes(currentLesson);
+  const isValidLesson = currentLesson !== undefined && currentLesson !== null;
 
   return (
     <div className="space-y-6 w-full">
@@ -15,9 +16,9 @@ export default function CoursePlayer({
           <h2 className="text-yellow-400 text-xs sm:text-sm font-black tracking-wider uppercase flex items-center gap-2">
             <span>▶</span> Watch Lesson
           </h2>
-          {currentLesson && (
+          {isValidLesson && (
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 uppercase tracking-widest">
-              Active Lesson
+              Active Lesson (Day {currentLesson + 1})
             </span>
           )}
         </div>
@@ -43,7 +44,7 @@ export default function CoursePlayer({
       {/* Completion Button */}
       <button
         type="button"
-        disabled={!currentLesson || isCompleted}
+        disabled={!isValidLesson || isCompleted}
         onClick={onComplete}
         className={`w-full py-4 px-6 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 shadow-xl ${
           isCompleted

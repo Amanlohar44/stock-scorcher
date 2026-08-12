@@ -2,13 +2,11 @@ import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom"
 import { useEffect } from "react";
 import About from "./pages/About";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
+import Auth from "./pages/Auth"; // <--- Combined Auth Component (Login, Register, Forgot Password)
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Admin from "./pages/Admin";
-import AiMarketingCenter from "./pages/AiMarketingCenter"; // <--- NEW IMPORT
+import AiMarketingCenter from "./pages/AiMarketingCenter"; 
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import VerifyCertificate from "./pages/VerifyCertificate";
@@ -42,7 +40,7 @@ import PartnerLeaderboard from "./pages/partners/Leaderboard";
 import VerifiedProfile from "./pages/partners/Profile";
 
 // ==========================================
-// REFERRAL TRACKING LOGIC (Directly in App.jsx)
+// REFERRAL TRACKING LOGIC
 // ==========================================
 function ReferralTracker() {
   const [searchParams] = useSearchParams();
@@ -51,7 +49,6 @@ function ReferralTracker() {
     const refCode = searchParams.get('ref');
     
     if (refCode) {
-      // 30 Days Expiry
       const expiryTime = new Date().getTime() + 30 * 24 * 60 * 60 * 1000;
       const referralData = { code: refCode, expiry: expiryTime };
       localStorage.setItem('stock_scorcher_partner', JSON.stringify(referralData));
@@ -59,14 +56,14 @@ function ReferralTracker() {
     }
   }, [searchParams]);
 
-  return null; // This component doesn't render anything visually
+  return null;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToHash />
-      <ReferralTracker /> {/* Tracks ?ref=CODE from URLs */}
+      <ReferralTracker />
 
       <Layout>
         <Routes>
@@ -74,10 +71,10 @@ export default function App() {
               PUBLIC ROUTES
           ========================= */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Register />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/login" element={<Auth />} />
+          <Route path="/signup" element={<Auth />} />
+          <Route path="/register" element={<Auth />} />
+          <Route path="/forgot-password" element={<Auth />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
@@ -116,7 +113,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* ---> NEW AI MARKETING CENTER ROUTE <--- */}
           <Route
             path="/admin/ai-marketing"
             element={
@@ -125,7 +121,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* -------------------------------------- */}
           <Route
             path="/partner/dashboard"
             element={
