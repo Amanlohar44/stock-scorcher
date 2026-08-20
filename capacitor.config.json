@@ -1,0 +1,5 @@
+{
+  "appId": "com.stockscorcher.app",
+  "appName": "StockScorcher",
+  "webDir": "dist"
+}

@@ -1,30 +1,49 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "./navbar/Navbar";
-import Footer from "./Footer"; 
+import Footer from "./Footer";
 
 export default function Layout({ children }) {
   const location = useLocation();
 
-  // In specific routes par public Navbar aur Footer nahi dikhega
-  const hideLayoutRoutes = ["/login", "/signup", "/register", "/forgot-password", "/dashboard", "/admin", "/member-dashboard"];
-  
-  // Exact match ya agar path in dashboards se start hota hai
-  const shouldHideLayout = 
-    hideLayoutRoutes.includes(location.pathname) ||
-    location.pathname.startsWith("/dashboard") ||
-    location.pathname.startsWith("/member-dashboard") ||
-    location.pathname.startsWith("/admin");
+  const appRoutes = [
+    "/dashboard",
+    "/member-dashboard",
+    "/member-profile",
+    "/stock-analysis",
+    "/paper-trading",
+    "/portfolio",
+    "/watchlist",
+    "/market-news",
+    "/stock-scanner",
+    "/community",
+    "/research-vault",
+    "/ai-assistant",
+  ];
+
+  const isAppRoute = appRoutes.some(
+    (route) =>
+      location.pathname === route ||
+      location.pathname.startsWith(`${route}/`)
+  );
+
+  if (isAppRoute) {
+    return (
+      <div className="mobile-app-shell min-h-screen bg-[#030303] text-white">
+        {children}
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white selection:bg-yellow-400 selection:text-black flex flex-col justify-between overflow-x-hidden">
-      <div>
-        {!shouldHideLayout && <Navbar />}
-        <main className="min-w-0 w-full">
-          {children}
-        </main>
-      </div>
-      {!shouldHideLayout && <Footer />}
+    <div className="min-h-screen bg-[#030303] text-white selection:bg-yellow-400 selection:text-black flex flex-col">
+      <Navbar />
+
+      <main className="min-w-0 w-full flex-1">
+        {children}
+      </main>
+
+      <Footer />
     </div>
   );
 }

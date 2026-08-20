@@ -4,8 +4,7 @@ import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, collection, getDocs, setDoc } from "firebase/firestore";
 
-import Navbar from "../components/navbar/Navbar";
-import Footer from "../components/Footer";
+
 import ProgressBar from "../components/ProgressBar";
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 import DashboardTopbar from "../components/dashboard/DashboardTopbar";
@@ -191,7 +190,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#030303] text-white flex flex-col justify-between selection:bg-yellow-400 selection:text-black">
       
-      <Navbar />
+      
 
       <div className="flex flex-1 pt-20 lg:flex-row">
 
@@ -656,7 +655,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Footer />
+      
 
     </div>
   );
