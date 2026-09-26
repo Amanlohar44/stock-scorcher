@@ -1,12 +1,19 @@
-import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useSearchParams,
+  useLocation,
+} from "react-router-dom";
 import { useEffect } from "react";
+
 import About from "./pages/About";
 import Home from "./pages/Home";
-import Auth from "./pages/Auth"; // <--- Combined Auth Component (Login, Register, Forgot Password)
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Admin from "./pages/Admin";
-import AiMarketingCenter from "./pages/AiMarketingCenter"; 
+import AiMarketingCenter from "./pages/AiMarketingCenter";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import VerifyCertificate from "./pages/VerifyCertificate";
@@ -21,8 +28,8 @@ import MarketNews from "./pages/MarketNews";
 import StockScanner from "./pages/StockScanner";
 import Community from "./pages/Community";
 import ResearchVault from "./pages/ResearchVault";
-import Blog from './pages/Blog';
-import Contact from "./components/Contact"; 
+import Blog from "./pages/Blog";
+import Contact from "./components/Contact";
 import Layout from "./components/Layout";
 import ScrollToHash from "./components/ScrollToHash";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -33,25 +40,35 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import Reviews from "./pages/Reviews";
 
-// Partner Network Imports
+// Partner Network
 import PartnerDashboard from "./pages/partners/PartnerDashboard";
 import PartnerApply from "./pages/partners/PartnerApply";
 import PartnerLeaderboard from "./pages/partners/Leaderboard";
 import VerifiedProfile from "./pages/partners/Profile";
 
 // ==========================================
-// REFERRAL TRACKING LOGIC
+// REFERRAL TRACKING
 // ==========================================
 function ReferralTracker() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const refCode = searchParams.get('ref');
-    
+    const refCode = searchParams.get("ref");
+
     if (refCode) {
-      const expiryTime = new Date().getTime() + 30 * 24 * 60 * 60 * 1000;
-      const referralData = { code: refCode, expiry: expiryTime };
-      localStorage.setItem('stock_scorcher_partner', JSON.stringify(referralData));
+      const expiryTime =
+        new Date().getTime() + 30 * 24 * 60 * 60 * 1000;
+
+      const referralData = {
+        code: refCode,
+        expiry: expiryTime,
+      };
+
+      localStorage.setItem(
+        "stock_scorcher_partner",
+        JSON.stringify(referralData)
+      );
+
       console.log("✅ Partner Referral Tracked:", refCode);
     }
   }, [searchParams]);
@@ -59,95 +76,254 @@ function ReferralTracker() {
   return null;
 }
 
-export default function App() {
+// ==========================================
+// ADMIN ROUTES
+// NO PUBLIC LAYOUT / NAVBAR
+// ==========================================
+function AdminRoutes() {
   return (
-    <BrowserRouter>
+    <Routes>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/ai-marketing"
+        element={
+          <ProtectedRoute>
+            <AiMarketingCenter />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+}
+
+// ==========================================
+// WEBSITE ROUTES
+// USES PUBLIC LAYOUT / NAVBAR
+// ==========================================
+function WebsiteRoutes() {
+  return (
+    <Layout>
+      <Routes>
+        {/* =========================
+            PUBLIC ROUTES
+        ========================= */}
+        <Route path="/" element={<Home />} />
+
+        <Route path="/login" element={<Auth />} />
+        <Route path="/signup" element={<Auth />} />
+        <Route path="/register" element={<Auth />} />
+        <Route path="/forgot-password" element={<Auth />} />
+
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/membership" element={<Membership />} />
+
+        <Route
+          path="/payment-success"
+          element={<PaymentSuccess />}
+        />
+
+        <Route
+          path="/verify-certificate"
+          element={<VerifyCertificate />}
+        />
+
+        <Route path="/faq" element={<Faq />} />
+        <Route path="/reviews" element={<Reviews />} />
+
+        <Route
+          path="/privacy-policy"
+          element={<PrivacyPolicy />}
+        />
+
+        <Route
+          path="/terms-conditions"
+          element={<TermsAndConditions />}
+        />
+
+        {/* =========================
+            PARTNER PUBLIC ROUTES
+        ========================= */}
+        <Route
+          path="/partner/apply"
+          element={<PartnerApply />}
+        />
+
+        <Route
+          path="/partner/leaderboard"
+          element={<PartnerLeaderboard />}
+        />
+
+        <Route
+          path="/partner/:partnerId"
+          element={<VerifiedProfile />}
+        />
+
+        {/* =========================
+            NORMAL PROTECTED ROUTES
+        ========================= */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/partner/dashboard"
+          element={
+            <ProtectedRoute>
+              <PartnerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =========================
+            PREMIUM ROUTES
+        ========================= */}
+        <Route
+          path="/member-dashboard"
+          element={
+            <PremiumRoute>
+              <MemberDashboard />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/member-profile"
+          element={
+            <PremiumRoute>
+              <MemberProfile />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/stock-analysis"
+          element={
+            <PremiumRoute>
+              <StockAnalysis />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/paper-trading"
+          element={
+            <PremiumRoute>
+              <PaperTrading />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/portfolio"
+          element={
+            <PremiumRoute>
+              <Portfolio />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/watchlist"
+          element={
+            <PremiumRoute>
+              <Watchlist />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/market-news"
+          element={
+            <PremiumRoute>
+              <MarketNews />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/stock-scanner"
+          element={
+            <PremiumRoute>
+              <StockScanner />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/community"
+          element={
+            <PremiumRoute>
+              <Community />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/research-vault"
+          element={
+            <PremiumRoute>
+              <ResearchVault />
+            </PremiumRoute>
+          }
+        />
+
+        <Route
+          path="/ai-assistant"
+          element={
+            <PremiumRoute>
+              <AiAssistant />
+            </PremiumRoute>
+          }
+        />
+
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Layout>
+  );
+}
+
+// ==========================================
+// MAIN APP
+// ==========================================
+function AppContent() {
+  const location = useLocation();
+
+  // IMPORTANT:
+  // Every /admin route completely bypasses
+  // the public Layout and Navbar.
+  const isAdminRoute = location.pathname.startsWith("/admin");
+
+  return (
+    <>
       <ScrollToHash />
       <ReferralTracker />
 
-      <Layout>
-        <Routes>
-          {/* =========================
-              PUBLIC ROUTES
-          ========================= */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Auth />} />
-          <Route path="/signup" element={<Auth />} />
-          <Route path="/register" element={<Auth />} />
-          <Route path="/forgot-password" element={<Auth />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/membership" element={<Membership />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/verify-certificate" element={<VerifyCertificate />} />
-          <Route path="/faq" element={<Faq />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-conditions" element={<TermsAndConditions />} />
+      {isAdminRoute ? <AdminRoutes /> : <WebsiteRoutes />}
+    </>
+  );
+}
 
-          {/* =========================
-              PARTNER PUBLIC ROUTES
-          ========================= */}
-          <Route path="/partner/apply" element={<PartnerApply />} />
-          <Route path="/partner/leaderboard" element={<PartnerLeaderboard />} />
-          <Route path="/partner/:partnerId" element={<VerifiedProfile />} />
-
-          {/* =========================
-              PROTECTED ROUTES
-          ========================= */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/ai-marketing"
-            element={
-              <ProtectedRoute>
-                <AiMarketingCenter />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/partner/dashboard"
-            element={
-              <ProtectedRoute>
-                <PartnerDashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* =========================
-              PREMIUM ELITE ROUTES
-          ========================= */}
-          <Route path="/member-dashboard" element={<PremiumRoute><MemberDashboard /></PremiumRoute>} />
-          <Route path="/member-profile" element={<PremiumRoute><MemberProfile /></PremiumRoute>} />
-          <Route path="/stock-analysis" element={<PremiumRoute><StockAnalysis /></PremiumRoute>} />
-          <Route path="/paper-trading" element={<PremiumRoute><PaperTrading /></PremiumRoute>} />
-          <Route path="/portfolio" element={<PremiumRoute><Portfolio /></PremiumRoute>} />
-          <Route path="/watchlist" element={<PremiumRoute><Watchlist /></PremiumRoute>} />
-          <Route path="/market-news" element={<PremiumRoute><MarketNews /></PremiumRoute>} />
-          <Route path="/stock-scanner" element={<PremiumRoute><StockScanner /></PremiumRoute>} />
-          <Route path="/community" element={<PremiumRoute><Community /></PremiumRoute>} />
-          <Route path="/research-vault" element={<PremiumRoute><ResearchVault /></PremiumRoute>} />
-          <Route path="/ai-assistant" element={<PremiumRoute><AiAssistant /></PremiumRoute>} />
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Layout>
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }
