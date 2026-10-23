@@ -9,7 +9,7 @@ import {
 const stats = [
   {
     icon: <FaUsers className="text-3xl text-yellow-400" />,
-    number: "10K+",
+    number: "100+",
     title: "Active Traders",
   },
   {

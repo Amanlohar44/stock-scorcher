@@ -38,7 +38,7 @@ export default function AboutFounder() {
 
               <div className="rounded-2xl border border-yellow-500/20 bg-zinc-950/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg">
                 <h3 className="text-2xl sm:text-3xl font-black text-yellow-400">
-                  10K+
+                  100+
                 </h3>
                 <p className="mt-1 text-xs sm:text-sm font-semibold text-zinc-400">
                   Active Students
