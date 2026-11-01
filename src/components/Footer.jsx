@@ -173,7 +173,7 @@ export default function Footer() {
             </p>
             <div className="flex flex-wrap gap-2.5 pt-1">
               <a
-                href="https://www.instagram.com/stockscorcher_official?igsh=MTl0aXdpaG5sM3BhZQ=="
+                href="https://www.instagram.com/stockscorcher_?igsh=MTl0aXdpaG5sM3BhZQ=="
                 target="_blank"
                 rel="noreferrer"
                 title="Instagram - Stock Scorcher"
