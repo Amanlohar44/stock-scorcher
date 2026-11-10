@@ -183,7 +183,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://www.instagram.com/amanlohar44?igsh=Yjc5MHF6NWM2YXY5"
+                href="https://www.instagram.com/amanlohar04?igsh=Yjc5MHF6NWM2YXY5"
                 target="_blank"
                 rel="noreferrer"
                 title="Instagram - Aman Lohar"
